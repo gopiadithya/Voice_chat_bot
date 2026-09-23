@@ -1,3 +1,10 @@
+"""
+✨ Nova AI — Conversational Voice Assistant
+============================================
+An intelligent, multimodal voice chatbot powered by a Bidirectional LSTM
+neural network for intent classification across 28 technical domains.
+"""
+
 import json
 import pickle
 import numpy as np
@@ -6,25 +13,92 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from streamlit_mic_recorder import speech_to_text
 
-
-# ---------------------------------------------------------
+# ─────────────────────────────────────────────────────────
 # PAGE CONFIGURATION
-# ---------------------------------------------------------
+# ─────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="VoiceBot AI",
-    page_icon="🎙️",
-    layout="centered"
+    page_title="Nova AI — Voice Assistant",
+    page_icon="✨",
+    layout="centered",
+    initial_sidebar_state="expanded",
 )
 
+# ─────────────────────────────────────────────────────────
+# CUSTOM STYLING (Nova AI Conversational Theme)
+# ─────────────────────────────────────────────────────────
 
-# ---------------------------------------------------------
-# LOAD FILES
-# ---------------------------------------------------------
+st.markdown(
+    """
+    <style>
+    /* Main header styling */
+    .nova-header {
+        text-align: center;
+        padding: 1.2rem 0 0.5rem 0;
+    }
+    .nova-title {
+        font-size: 2.2rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0.2rem;
+    }
+    .nova-subtitle {
+        font-size: 0.95rem;
+        color: #888888;
+        margin-bottom: 1.2rem;
+    }
+    .nova-status {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        background-color: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    /* Quick chip buttons */
+    .chip-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.2rem;
+    }
+    /* Intent badge */
+    .intent-badge {
+        display: inline-block;
+        font-size: 0.75rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 6px;
+        background-color: rgba(99, 102, 241, 0.15);
+        color: #818cf8;
+        font-weight: 600;
+        margin-top: 0.4rem;
+        margin-right: 0.5rem;
+    }
+    .confidence-badge {
+        display: inline-block;
+        font-size: 0.75rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 6px;
+        background-color: rgba(168, 85, 247, 0.15);
+        color: #c084fc;
+        font-weight: 600;
+        margin-top: 0.4rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ─────────────────────────────────────────────────────────
+# LOAD MODEL & ARTIFACTS (Cached)
+# ─────────────────────────────────────────────────────────
 
 @st.cache_resource
-def load_chatbot():
-
+def load_nova_brain():
     model = load_model("chatbot_model.keras")
 
     with open("tokenizer.pkl", "rb") as f:
@@ -42,376 +116,241 @@ def load_chatbot():
     return model, tokenizer, label_encoder, metadata, intents_data
 
 
-model, tokenizer, label_encoder, metadata, intents_data = load_chatbot()
-
-
-# ---------------------------------------------------------
-# RESPONSE DATABASE
-# ---------------------------------------------------------
+model, tokenizer, label_encoder, metadata, intents_data = load_nova_brain()
+max_len = metadata["max_len"]
 
 responses = {}
-
 for intent in intents_data["intents"]:
     responses[intent["tag"]] = intent["responses"]
 
-
-# ---------------------------------------------------------
-# SESSION STATE
-# ---------------------------------------------------------
+# ─────────────────────────────────────────────────────────
+# SESSION STATE MANAGEMENT
+# ─────────────────────────────────────────────────────────
 
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    st.session_state.messages = [
+        {
+            "role": "assistant",
+            "content": "👋 **Hello! I'm Nova AI**, your deep-learning conversational voice assistant. You can speak into your microphone or message me about Machine Learning, Neural Networks, Transformers, Python, DSA, or study advice!",
+            "intent": "greeting",
+            "confidence": 1.0,
+        }
+    ]
+
+if "last_spoken_id" not in st.session_state:
+    st.session_state.last_spoken_id = None
+
+# ─────────────────────────────────────────────────────────
+# PREDICTION & RESPONSE ENGINE
+# ─────────────────────────────────────────────────────────
+
+CONFIDENCE_THRESHOLD = 0.45
 
 
-if "recognized_text" not in st.session_state:
-    st.session_state.recognized_text = ""
+def predict_intent(text: str):
+    seq = tokenizer.texts_to_sequences([text.lower().strip()])
+    padded = pad_sequences(seq, maxlen=max_len, padding="post", truncating="post")
 
-
-# ---------------------------------------------------------
-# PREDICTION FUNCTION
-# ---------------------------------------------------------
-
-def predict_intent(text):
-
-    sequence = tokenizer.texts_to_sequences([text.lower()])
-
-    padded = pad_sequences(
-        sequence,
-        maxlen=metadata["max_len"],
-        padding="post",
-        truncating="post"
-    )
-
-    probabilities = model.predict(
-        padded,
-        verbose=0
-    )[0]
-
+    probabilities = model.predict(padded, verbose=0)[0]
     predicted_index = np.argmax(probabilities)
-
     confidence = float(probabilities[predicted_index])
-
-    intent = label_encoder.inverse_transform(
-        [predicted_index]
-    )[0]
+    intent = label_encoder.inverse_transform([predicted_index])[0]
 
     return intent, confidence
 
 
-# ---------------------------------------------------------
-# RESPONSE FUNCTION
-# ---------------------------------------------------------
-
-def generate_response(text):
-
+def generate_response(text: str):
     intent, confidence = predict_intent(text)
 
-    # Low confidence handling
-    if confidence < 0.45:
-
+    if confidence < CONFIDENCE_THRESHOLD:
         response = (
-            "I'm not completely sure what you mean. "
-            "Could you please rephrase your question?"
+            "I'm not completely sure about that. "
+            "Could you rephrase your question or ask about an AI/CS topic?"
         )
-
-        return intent, confidence, response
-
-    response = np.random.choice(
-        responses.get(
+    else:
+        candidates = responses.get(
             intent,
-            ["Sorry, I don't know how to answer that."]
+            ["I understand what you mean, but I don't have a direct answer prepared yet."]
         )
-    )
+        response = str(np.random.choice(candidates))
 
     return intent, confidence, response
 
 
-# ---------------------------------------------------------
-# TEXT TO SPEECH
-# ---------------------------------------------------------
+# ─────────────────────────────────────────────────────────
+# JAVASCRIPT TEXT-TO-SPEECH (Browser Native SpeechSynthesis)
+# ─────────────────────────────────────────────────────────
 
-def speak_text(text):
-
+def trigger_speech(text: str):
     safe_text = (
         text.replace("\\", "\\\\")
         .replace("`", "\\`")
         .replace("\n", " ")
+        .replace('"', '\\"')
+        .replace("*", "")
     )
-
     st.components.v1.html(
         f"""
         <script>
-            const text = `{safe_text}`;
-
             if ('speechSynthesis' in window) {{
                 window.speechSynthesis.cancel();
-
-                const speech =
-                    new SpeechSynthesisUtterance(text);
-
-                speech.rate = 1.0;
+                const speech = new SpeechSynthesisUtterance("{safe_text}");
+                speech.rate = 1.02;
                 speech.pitch = 1.0;
                 speech.volume = 1.0;
-
                 window.speechSynthesis.speak(speech);
             }}
         </script>
         """,
-        height=0
+        height=0,
     )
 
 
-# ---------------------------------------------------------
-# HEADER
-# ---------------------------------------------------------
+# ─────────────────────────────────────────────────────────
+# SIDEBAR CONTROLS
+# ─────────────────────────────────────────────────────────
 
-st.title("🎙️ VoiceBot AI")
+with st.sidebar:
+    st.image("https://img.icons8.com/clouds/200/artificial-intelligence.png", width=90)
+    st.title("✨ Nova AI")
+    st.caption("Deep Learning Conversational Assistant")
+
+    st.markdown("---")
+    st.subheader("🎙️ Voice & Audio Settings")
+    auto_speak = st.toggle("🔊 Auto-speak responses", value=True, help="Nova will speak responses aloud using browser speech synthesis.")
+
+    st.markdown("---")
+    st.subheader("🤖 Neural Architecture")
+    st.markdown(
+        """
+        - **Model:** Bidirectional LSTM
+        - **Embedding:** 128-dim + SpatialDropout
+        - **Hidden Layers:** 64 units forward + 64 backward
+        - **Intents:** 28 Categories
+        - **Dataset:** 616 Utterances
+        - **Held-out Test Acc:** **60.22%**
+        """
+    )
+
+    st.markdown("---")
+    if st.button("🗑️ Reset Conversation", use_container_width=True):
+        st.session_state.messages = [
+            {
+                "role": "assistant",
+                "content": "👋 Conversation reset! I'm **Nova AI**. What would you like to explore next?",
+                "intent": "greeting",
+                "confidence": 1.0,
+            }
+        ]
+        st.session_state.last_spoken_id = None
+        st.rerun()
+
+# ─────────────────────────────────────────────────────────
+# MAIN HERO HEADER
+# ─────────────────────────────────────────────────────────
 
 st.markdown(
     """
-    ### Deep Learning Based Voice-Enabled Chatbot
-
-    Speak naturally or type your question.  
-    The system converts your speech into text, predicts the
-    user's intent using a **Bidirectional LSTM**, and generates
-    an appropriate response.
-    """
+    <div class="nova-header">
+        <div class="nova-title">✨ Nova AI Assistant</div>
+        <div class="nova-subtitle">Voice-Enabled Deep Learning Conversational Bot</div>
+        <div class="nova-status">🟢 BiLSTM Model Active & Listening</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
+# ─────────────────────────────────────────────────────────
+# VOICE INPUT BAR
+# ─────────────────────────────────────────────────────────
 
-# ---------------------------------------------------------
-# SIDEBAR
-# ---------------------------------------------------------
+voice_col1, voice_col2 = st.columns([3, 1])
 
-with st.sidebar:
-
-    st.header("🤖 Model Information")
-
-    st.write("**Architecture:** BiLSTM")
-    st.write("**Intents:** 28")
-    st.write("**Dataset:** 616 utterances")
-    st.write("**Test Accuracy:** 60.22%")
-    st.write("**Vocabulary:** 712 words")
-
-    st.divider()
-
-    st.write(
-        "Speech recognition is handled through the browser "
-        "microphone interface."
+with voice_col1:
+    voice_prompt = speech_to_text(
+        language="en",
+        start_prompt="🎤 Speak to Nova",
+        stop_prompt="⏹️ Stop Recording",
+        just_once=True,
+        use_container_width=True,
+        key="nova_voice_recorder",
     )
 
-    st.write(
-        "The chatbot uses a trained deep learning model "
-        "for intent classification."
-    )
+with voice_col2:
+    if st.session_state.messages and st.session_state.messages[-1]["role"] == "assistant":
+        if st.button("🔊 Replay", use_container_width=True, help="Replay Nova's last response"):
+            trigger_speech(st.session_state.messages[-1]["content"])
 
+# ─────────────────────────────────────────────────────────
+# SUGGESTED PROMPT PILLS (Empty state or quick questions)
+# ─────────────────────────────────────────────────────────
 
-# ---------------------------------------------------------
-# CHAT HISTORY
-# ---------------------------------------------------------
+st.markdown("**💡 Quick Suggestions:**")
+chip_cols = st.columns(4)
 
-st.subheader("💬 Conversation")
+suggested_query = None
+if chip_cols[0].button("🧠 Deep Learning", use_container_width=True):
+    suggested_query = "What is deep learning?"
+if chip_cols[1].button("⚡ Transformers", use_container_width=True):
+    suggested_query = "Explain transformer models"
+if chip_cols[2].button("👁️ Vision & CNN", use_container_width=True):
+    suggested_query = "What is a convolutional neural network?"
+if chip_cols[3].button("🚀 Project Ideas", use_container_width=True):
+    suggested_query = "Suggest some good AI project ideas"
 
-if len(st.session_state.messages) == 0:
+# ─────────────────────────────────────────────────────────
+# DISPLAY CONVERSATION STREAM (Chat Bubbles)
+# ─────────────────────────────────────────────────────────
 
-    st.info(
-        "Start by speaking into the microphone or typing "
-        "a question below."
-    )
-
-else:
-
-    for message in st.session_state.messages:
-
-        if message["role"] == "user":
-
-            with st.chat_message("user"):
-                st.write(message["content"])
-
-        else:
-
-            with st.chat_message("assistant"):
-                st.write(message["content"])
-
-
-# ---------------------------------------------------------
-# MICROPHONE INPUT
-# ---------------------------------------------------------
-
-st.subheader("🎤 Voice Input")
-
-voice_text = speech_to_text(
-    language="en",
-    start_prompt="🎤 Start Speaking",
-    stop_prompt="⏹️ Stop Recording",
-    just_once=True,
-    use_container_width=True,
-    key="voice_input"
-)
-
-
-# ---------------------------------------------------------
-# PROCESS VOICE INPUT
-# ---------------------------------------------------------
-
-if voice_text:
-
-    st.session_state.recognized_text = voice_text
-
-
-# ---------------------------------------------------------
-# DISPLAY RECOGNIZED SPEECH
-# ---------------------------------------------------------
-
-if st.session_state.recognized_text:
-
-    st.success(
-        f"🗣️ Recognized Speech: "
-        f"**{st.session_state.recognized_text}**"
-    )
-
-
-# ---------------------------------------------------------
-# TEXT INPUT
-# ---------------------------------------------------------
-
-st.subheader("⌨️ Text Input")
-
-typed_text = st.text_input(
-    "Type your question",
-    placeholder="Example: What is deep learning?"
-)
-
-
-# ---------------------------------------------------------
-# SEND BUTTON
-# ---------------------------------------------------------
-
-if st.button(
-    "🚀 Ask Chatbot",
-    use_container_width=True
-):
-
-    user_text = typed_text.strip()
-
-    if not user_text:
-
-        user_text = st.session_state.recognized_text.strip()
-
-    if not user_text:
-
-        st.warning(
-            "Please speak into the microphone or type "
-            "a question."
-        )
-
+for idx, msg in enumerate(st.session_state.messages):
+    if msg["role"] == "user":
+        with st.chat_message("user", avatar="🧑‍💻"):
+            st.write(msg["content"])
     else:
+        with st.chat_message("assistant", avatar="✨"):
+            st.markdown(msg["content"])
+            if "intent" in msg and msg["intent"]:
+                st.markdown(
+                    f'<span class="intent-badge">🏷️ {msg["intent"]}</span>'
+                    f'<span class="confidence-badge">🎯 {msg["confidence"]*100:.1f}% confidence</span>',
+                    unsafe_allow_html=True,
+                )
 
-        # Add user message
-        st.session_state.messages.append(
-            {
-                "role": "user",
-                "content": user_text
-            }
-        )
+# ─────────────────────────────────────────────────────────
+# HANDLE INCOMING INPUT (Voice, Suggested Chip, or Text Input)
+# ─────────────────────────────────────────────────────────
 
-        # Generate response
-        intent, confidence, response = generate_response(
-            user_text
-        )
+chat_text = st.chat_input("Message Nova AI or use the microphone above...")
 
-        # Add bot response
-        st.session_state.messages.append(
-            {
-                "role": "assistant",
-                "content": response
-            }
-        )
+incoming_text = None
+if voice_prompt:
+    incoming_text = voice_prompt
+elif suggested_query:
+    incoming_text = suggested_query
+elif chat_text:
+    incoming_text = chat_text
 
-        # Store prediction information
-        st.session_state.last_intent = intent
-        st.session_state.last_confidence = confidence
-        st.session_state.last_response = response
+if incoming_text:
+    user_query = incoming_text.strip()
 
-        # Clear recognized text
-        st.session_state.recognized_text = ""
+    # 1. Append user message
+    st.session_state.messages.append({"role": "user", "content": user_query})
 
-        # Refresh UI
-        st.rerun()
+    # 2. Predict intent & generate response using BiLSTM
+    intent, confidence, response = generate_response(user_query)
 
-
-# ---------------------------------------------------------
-# MODEL PREDICTION DETAILS
-# ---------------------------------------------------------
-
-if "last_intent" in st.session_state:
-
-    st.divider()
-
-    st.subheader("🧠 Model Prediction")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-
-        st.metric(
-            "Predicted Intent",
-            st.session_state.last_intent
-        )
-
-    with col2:
-
-        st.metric(
-            "Confidence",
-            f"{st.session_state.last_confidence * 100:.2f}%"
-        )
-
-    # Confidence progress bar
-    st.progress(
-        min(
-            st.session_state.last_confidence,
-            1.0
-        )
+    # 3. Append assistant response
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": response,
+            "intent": intent,
+            "confidence": confidence,
+        }
     )
 
-
-# ---------------------------------------------------------
-# TEXT TO SPEECH
-# ---------------------------------------------------------
-
-if "last_response" in st.session_state:
-
-    if st.button(
-        "🔊 Speak Response",
-        use_container_width=True
-    ):
-
-        speak_text(
-            st.session_state.last_response
-        )
-
-
-# ---------------------------------------------------------
-# CLEAR CHAT
-# ---------------------------------------------------------
-
-st.divider()
-
-if st.button(
-    "🗑️ Clear Conversation",
-    use_container_width=True
-):
-
-    st.session_state.messages = []
-    st.session_state.recognized_text = ""
-
-    if "last_intent" in st.session_state:
-        del st.session_state.last_intent
-
-    if "last_confidence" in st.session_state:
-        del st.session_state.last_confidence
-
-    if "last_response" in st.session_state:
-        del st.session_state.last_response
+    # 4. Auto-speak response if enabled
+    if auto_speak:
+        trigger_speech(response)
 
     st.rerun()
