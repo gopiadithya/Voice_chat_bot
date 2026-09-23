@@ -278,16 +278,26 @@
     setTimeout(() => { stopBtn.style.color = ''; }, 600);
   }
 
-  // Submit typed text
+  // Submit typed text or current voice buffer
   function submitTextInput() {
+    clearTimeout(silenceTimer);
+    if (isListening) {
+      isListening = false;
+      if (recognition) {
+        try { recognition.stop(); } catch (e) {}
+      }
+    }
     const input = document.getElementById("chatInput");
-    const text = input.value.trim();
+    const text = (input.value || finalAccumulatedText).trim();
+    finalAccumulatedText = "";
     if (text) {
+      input.placeholder = "Delivering answer...";
+      input.value = "";
       sendToStreamlit({
         text: text,
         ts: Date.now()
       });
-      input.value = "";
+      setTimeout(resetUi, 2500);
     }
   }
 
@@ -351,12 +361,7 @@
 
     recognition.onend = () => {
       if (isListening) {
-        const text = finalAccumulatedText.trim() || document.getElementById("chatInput").value.trim();
-        if (text) {
-          finishAndSubmit();
-        } else {
-          resetUi();
-        }
+        finishAndSubmit();
       }
     };
   }
@@ -381,6 +386,7 @@
   }
 
   function finishAndSubmit() {
+    if (!isListening) return;
     isListening = false;
     clearTimeout(silenceTimer);
     if (recognition) {
@@ -388,13 +394,14 @@
     }
 
     const input = document.getElementById("chatInput");
-    const recognizedText = finalAccumulatedText.trim() || input.value.trim();
+    const text = (finalAccumulatedText || input.value).trim();
+    finalAccumulatedText = "";
 
-    if (recognizedText) {
+    if (text) {
       input.placeholder = "Delivering answer...";
       input.value = "";
       sendToStreamlit({
-        text: recognizedText,
+        text: text,
         ts: Date.now()
       });
       setTimeout(resetUi, 2500);

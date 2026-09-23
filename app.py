@@ -417,9 +417,10 @@ def predict_bilstm(text: str, is_rollback: bool = False):
 # ─────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = (
-    "You are VoiceBot AI, an intelligent, conversational voice assistant modeled after a friendly expert interviewer and tutor. "
-    "Keep your spoken answers concise (2 to 4 sentences), accurate, natural, and conversational so they sound great when read aloud via text-to-speech. "
-    "Avoid long markdown bullet lists, URLs, or complex ASCII formatting."
+    "You are VoiceBot AI, an intelligent, highly accurate voice assistant. "
+    "Keep your spoken answers concise (2 to 4 sentences max), strictly accurate and factual, and natural so they sound great when read aloud via text-to-speech. "
+    "Never invent or hallucinate movie titles, names, dates, or false facts. "
+    "Avoid markdown tables, asterisks, bullet lists, URLs, or complex ASCII formatting."
 )
 
 
@@ -458,7 +459,7 @@ def try_gemini(user_text: str, api_key: str):
                 "contents": contents,
                 "generationConfig": {
                     "maxOutputTokens": 350,
-                    "temperature": 0.7,
+                    "temperature": 0.3,
                     "thinkingConfig": {"thinkingBudget": 0}
                 }
             }
@@ -483,16 +484,15 @@ def try_gemini(user_text: str, api_key: str):
 
 
 def try_groq(user_text: str, api_key: str):
-    """Attempt generation via Groq API (Qwen 3.8 / GPT-OSS / Llama). Returns None on failure."""
+    """Attempt generation via Groq API (prioritizing GPT-OSS-120B / GPT-OSS-20B for maximum factual accuracy)."""
     if not api_key:
         return None
 
     groq_models = [
-        "qwen/qwen3.8-27b",
-        "openai/gpt-oss-120b",
-        "openai/gpt-oss-20b",
-        "allam-2-7b",
-        "llama-3.3-70b-versatile",
+        ("openai/gpt-oss-120b", 550, 0.2),
+        ("openai/gpt-oss-20b", 500, 0.2),
+        ("qwen/qwen3.8-27b", 350, 0.2),
+        ("allam-2-7b", 350, 0.3),
     ]
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -501,7 +501,7 @@ def try_groq(user_text: str, api_key: str):
             messages.append({"role": m["role"], "content": m["content"]})
     messages.append({"role": "user", "content": user_text})
 
-    for model in groq_models:
+    for model, max_tok, temp in groq_models:
         try:
             url = "https://api.groq.com/openai/v1/chat/completions"
             headers = {
@@ -511,20 +511,28 @@ def try_groq(user_text: str, api_key: str):
             payload = {
                 "model": model,
                 "messages": messages,
-                "temperature": 0.7,
-                "max_tokens": 250,
+                "temperature": temp,
+                "max_tokens": max_tok,
             }
-            res = requests.post(url, json=payload, headers=headers, timeout=6)
+            res = requests.post(url, json=payload, headers=headers, timeout=8)
             if res.status_code == 200:
-                content = res.json()["choices"][0]["message"]["content"].strip()
-                if content:
-                    model_display = model.split("/")[-1].replace("-", " ").title()
-                    return {
-                        "reply": content,
-                        "engine": f"Cloud AI (Groq {model_display})",
-                        "intent": "Generative AI",
-                        "confidence": 1.0
-                    }
+                raw = res.json()["choices"][0]["message"]["content"]
+                if raw:
+                    content = (
+                        raw.replace("\u202f", " ")
+                        .replace("**", "")
+                        .replace("###", "")
+                        .replace("##", "")
+                        .strip()
+                    )
+                    if content:
+                        model_display = model.split("/")[-1].replace("-", " ").title()
+                        return {
+                            "reply": content,
+                            "engine": f"Cloud AI (Groq {model_display})",
+                            "intent": "Generative AI",
+                            "confidence": 1.0
+                        }
         except Exception:
             continue
     return None
@@ -735,7 +743,14 @@ if spoken_data:
         user_query = str(spoken_data).strip()
         query_id = user_query
 
-    if user_query and query_id != st.session_state.get("last_processed_id"):
+    # Deduplicate against immediate last user message to prevent double-submits
+    is_duplicate = False
+    if st.session_state.messages:
+        last_msg = st.session_state.messages[-1]
+        if last_msg.get("role") == "user" and last_msg.get("content", "").strip().lower() == user_query.lower():
+            is_duplicate = True
+
+    if user_query and not is_duplicate and query_id != st.session_state.get("last_processed_id"):
         st.session_state.last_processed_id = query_id
         st.session_state.messages.append({"role": "user", "content": user_query})
 
