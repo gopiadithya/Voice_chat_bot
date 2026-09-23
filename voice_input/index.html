@@ -15,32 +15,32 @@
     background: transparent;
     color: #f8fafc;
     overflow: hidden;
-    padding: 4px;
+    padding: 2px 4px;
   }
-  .container {
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95));
-    border: 1px solid rgba(59, 130, 246, 0.45);
-    border-radius: 16px;
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
-  }
-  .top-row {
+  .voice-dock {
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.8));
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    border-radius: 14px;
+    padding: 10px 16px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 16px;
-    width: 100%;
+    gap: 14px;
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45);
+    transition: border-color 0.3s ease;
+  }
+  .voice-dock.active {
+    border-color: rgba(239, 68, 68, 0.7);
+    box-shadow: 0 0 25px -4px rgba(239, 68, 68, 0.35);
   }
   /* YouTube style pulsing mic button */
   .mic-button {
     position: relative;
-    width: 60px;
-    height: 60px;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
     border-radius: 50%;
-    background: #ef4444;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     border: none;
     cursor: pointer;
     display: flex;
@@ -49,64 +49,56 @@
     color: white;
     outline: none;
     transition: all 0.25s ease;
-    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
-  }
-  .mic-button.idle {
-    background: #2563eb;
     box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
   }
-  .mic-button.idle:hover {
-    transform: scale(1.05);
-    background: #1d4ed8;
+  .mic-button:hover {
+    transform: scale(1.06);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.55);
   }
   .mic-button.listening {
-    background: #ef4444;
-    animation: pulse 1.4s infinite;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    animation: micPulse 1.4s infinite;
   }
-  @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
-    }
-    70% {
-      box-shadow: 0 0 0 20px rgba(239, 68, 68, 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-    }
+  @keyframes micPulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { box-shadow: 0 0 0 16px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
   }
   .mic-icon {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     fill: currentColor;
   }
-  .info-box {
+  /* Stream / Subtitle details */
+  .stream-container {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    flex-grow: 1;
+    min-width: 0;
   }
-  .status-text {
-    font-size: 15px;
-    font-weight: 600;
-    color: #94a3b8;
+  .status-row {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
   }
-  .status-text.active {
-    color: #ef4444;
+  .status-row.active {
+    color: #f87171;
   }
-  .status-text.success {
+  .status-row.success {
     color: #34d399;
   }
   .wave-bars {
     display: none;
     align-items: center;
     gap: 3px;
-    height: 16px;
+    height: 14px;
   }
   .wave-bar {
     width: 3px;
-    height: 6px;
+    height: 5px;
     background: #ef4444;
     border-radius: 2px;
     animation: wave 0.8s ease-in-out infinite alternate;
@@ -116,64 +108,59 @@
   .wave-bar:nth-child(4) { animation-delay: 0.45s; }
   @keyframes wave {
     0% { height: 4px; }
-    100% { height: 16px; }
+    100% { height: 14px; }
   }
-  /* Live transcript subtitle box */
-  .live-box {
-    width: 100%;
-    margin-top: 12px;
-    background: rgba(15, 23, 42, 0.65);
-    border: 1px dashed rgba(100, 116, 139, 0.4);
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 14px;
-    min-height: 42px;
-    display: flex;
-    align-items: center;
+  .live-subtitle {
+    font-size: 13.5px;
     color: #38bdf8;
-    word-break: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 3px;
+    font-style: normal;
   }
-  .live-placeholder {
+  .live-subtitle.placeholder {
     color: #64748b;
-    font-style: italic;
-    font-size: 13px;
+    font-size: 12.5px;
+  }
+  .hint-tag {
+    font-size: 11px;
+    color: #64748b;
+    background: rgba(148, 163, 184, 0.1);
+    padding: 2px 7px;
+    border-radius: 8px;
+    margin-left: auto;
+    white-space: nowrap;
   }
 </style>
 </head>
 <body>
 
-<div class="container">
-  <div class="top-row">
-    <button id="micButton" class="mic-button idle" onclick="toggleListening()">
-      <!-- Mic SVG -->
-      <svg id="svgMic" class="mic-icon" viewBox="0 0 24 24">
-        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-      </svg>
-      <!-- Stop SVG -->
-      <svg id="svgStop" class="mic-icon" viewBox="0 0 24 24" style="display: none;">
-        <rect x="6" y="6" width="12" height="12" rx="2"/>
-      </svg>
-    </button>
+<div class="voice-dock" id="voiceDock">
+  <button id="micButton" class="mic-button idle" onclick="toggleListening()" title="Click to speak">
+    <svg id="svgMic" class="mic-icon" viewBox="0 0 24 24">
+      <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+      <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+    </svg>
+    <svg id="svgStop" class="mic-icon" viewBox="0 0 24 24" style="display: none;">
+      <rect x="6" y="6" width="12" height="12" rx="2"/>
+    </svg>
+  </button>
 
-    <div class="info-box">
-      <div id="statusLabel" class="status-text">
-        <span id="statusMessage">Click microphone to speak</span>
-        <div id="waveBars" class="wave-bars">
-          <div class="wave-bar"></div>
-          <div class="wave-bar"></div>
-          <div class="wave-bar"></div>
-          <div class="wave-bar"></div>
-        </div>
+  <div class="stream-container">
+    <div class="status-row" id="statusRow">
+      <span id="statusMessage">Tap mic to speak</span>
+      <div id="waveBars" class="wave-bars">
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
       </div>
-      <span style="font-size: 12px; color: #64748b; margin-top: 3px;">
-        Auto-submits when you stop speaking (like YouTube)
-      </span>
+      <span class="hint-tag">YouTube-style auto-reply</span>
     </div>
-  </div>
-
-  <div class="live-box" id="liveBox">
-    <span class="live-placeholder" id="liveText">Your speech will stream here live as you talk...</span>
+    <div class="live-subtitle placeholder" id="liveText">
+      Speak naturally — answers automatically when you pause
+    </div>
   </div>
 </div>
 
@@ -183,7 +170,8 @@
   let silenceTimer = null;
   let finalAccumulatedText = "";
   let isHandshakeComplete = false;
-  const SILENCE_TIMEOUT_MS = 1300; // Auto-send after 1.3s of silence
+  const SILENCE_TIMEOUT_MS = 1300;
+  const COMPONENT_HEIGHT = 86;
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -199,7 +187,7 @@
     window.parent.postMessage({
       isStreamlitMessage: true,
       type: "streamlit:setFrameHeight",
-      height: height
+      height: height || COMPONENT_HEIGHT
     }, "*");
   }
 
@@ -210,11 +198,10 @@
         apiVersion: 1,
         type: "streamlit:componentReady"
       }, "*");
-      setFrameHeight(180);
+      setFrameHeight(COMPONENT_HEIGHT);
     }
   }
 
-  // Handshake retry loop until parent responds with render
   const handshakeInterval = setInterval(doHandshake, 80);
   doHandshake();
   window.addEventListener("DOMContentLoaded", doHandshake);
@@ -224,7 +211,7 @@
     if (event.data && event.data.type === "streamlit:render") {
       isHandshakeComplete = true;
       clearInterval(handshakeInterval);
-      setFrameHeight(180);
+      setFrameHeight(COMPONENT_HEIGHT);
       if (!isListening) {
         resetUi();
       }
@@ -240,13 +227,14 @@
     recognition.onstart = () => {
       isListening = true;
       finalAccumulatedText = "";
+      document.getElementById("voiceDock").className = "voice-dock active";
       document.getElementById("micButton").className = "mic-button listening";
       document.getElementById("svgMic").style.display = "none";
       document.getElementById("svgStop").style.display = "block";
-      document.getElementById("statusMessage").innerText = "Listening... Speak now";
-      document.getElementById("statusLabel").className = "status-text active";
+      document.getElementById("statusMessage").innerText = "Listening...";
+      document.getElementById("statusRow").className = "status-row active";
       document.getElementById("waveBars").style.display = "flex";
-      document.getElementById("liveText").className = "";
+      document.getElementById("liveText").className = "live-subtitle";
       document.getElementById("liveText").innerText = "";
     };
 
@@ -265,7 +253,6 @@
         document.getElementById("liveText").innerText = '"' + currentLive + '"';
       }
 
-      // YouTube-style: automatically finish and reply after user pauses
       clearTimeout(silenceTimer);
       silenceTimer = setTimeout(() => {
         if (isListening && currentLive.length > 1) {
@@ -277,7 +264,7 @@
     recognition.onerror = (event) => {
       console.warn("Speech recognition notice:", event.error);
       if (event.error !== "no-speech") {
-        document.getElementById("statusMessage").innerText = "Status: " + event.error;
+        document.getElementById("statusMessage").innerText = "Notice: " + event.error;
       }
       resetUi();
     };
@@ -296,7 +283,7 @@
 
   function toggleListening() {
     if (!recognition) {
-      alert("Web Speech API is not supported in this browser. Please use Google Chrome or Microsoft Edge.");
+      alert("Web Speech API is not supported in this browser. Please use Chrome or Edge.");
       return;
     }
     if (isListening) {
@@ -319,21 +306,19 @@
 
     const recognizedText = finalAccumulatedText.trim() || document.getElementById("liveText").innerText.replace(/^"|"$/g, "").trim();
 
-    if (recognizedText && recognizedText !== "Your speech will stream here live as you talk...") {
+    if (recognizedText && recognizedText !== "Speak naturally — answers automatically when you pause") {
       document.getElementById("statusMessage").innerText = "Delivering answer...";
-      document.getElementById("statusLabel").className = "status-text success";
+      document.getElementById("statusRow").className = "status-row success";
       document.getElementById("waveBars").style.display = "none";
-      document.getElementById("micButton").className = "mic-button idle";
+      document.getElementById("micButton").className = "mic-button";
       document.getElementById("svgMic").style.display = "block";
       document.getElementById("svgStop").style.display = "none";
 
-      // Directly deliver recognized text to Streamlit!
       sendToStreamlit({
         text: recognizedText,
         ts: Date.now()
       });
 
-      // Automatically reset status back to ready after delivering
       setTimeout(resetUi, 2500);
     } else {
       resetUi();
@@ -343,14 +328,15 @@
   function resetUi() {
     isListening = false;
     clearTimeout(silenceTimer);
-    document.getElementById("micButton").className = "mic-button idle";
+    document.getElementById("voiceDock").className = "voice-dock";
+    document.getElementById("micButton").className = "mic-button";
     document.getElementById("svgMic").style.display = "block";
     document.getElementById("svgStop").style.display = "none";
-    document.getElementById("statusMessage").innerText = "Click microphone to speak";
-    document.getElementById("statusLabel").className = "status-text";
+    document.getElementById("statusMessage").innerText = "Tap mic to speak";
+    document.getElementById("statusRow").className = "status-row";
     document.getElementById("waveBars").style.display = "none";
-    document.getElementById("liveText").className = "live-placeholder";
-    document.getElementById("liveText").innerText = "Your speech will stream here live as you talk...";
+    document.getElementById("liveText").className = "live-subtitle placeholder";
+    document.getElementById("liveText").innerText = "Speak naturally — answers automatically when you pause";
   }
 </script>
 

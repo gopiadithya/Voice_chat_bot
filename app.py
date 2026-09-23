@@ -35,9 +35,65 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom styling
+# Custom styling with animated ambient background
 st.markdown("""
 <style>
+    /* Animated Gradient Background */
+    .stApp {
+        background: 
+            radial-gradient(circle at 18% 22%, rgba(37, 99, 235, 0.16) 0%, transparent 40%),
+            radial-gradient(circle at 82% 18%, rgba(139, 92, 246, 0.18) 0%, transparent 42%),
+            radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.12) 0%, transparent 48%),
+            linear-gradient(180deg, #090d16 0%, #030712 100%) !important;
+        background-attachment: fixed !important;
+    }
+
+    /* Ambient floating glowing aura effect */
+    .stApp::before {
+        content: "";
+        position: fixed;
+        top: -40%;
+        left: -40%;
+        width: 180%;
+        height: 180%;
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 15%, transparent 55%),
+                    radial-gradient(circle, rgba(168, 85, 247, 0.04) 35%, transparent 65%);
+        animation: ambientDrift 22s infinite ease-in-out alternate;
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    @keyframes ambientDrift {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        50% { transform: translate(25px, -35px) rotate(8deg); }
+        100% { transform: translate(-25px, 25px) rotate(-8deg); }
+    }
+
+    /* Main container bounds */
+    .main .block-container {
+        max-width: 840px !important;
+        padding-top: 1.4rem !important;
+        padding-bottom: 2rem !important;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Modern Glassmorphism Chat Bubbles */
+    div[data-testid="stChatMessage"] {
+        background: rgba(15, 23, 42, 0.65) !important;
+        backdrop-filter: blur(16px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 16px !important;
+        padding: 12px 18px !important;
+        margin-bottom: 10px !important;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35) !important;
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    div[data-testid="stChatMessage"]:hover {
+        border-color: rgba(96, 165, 250, 0.35) !important;
+    }
+
     .badge-bilstm {
         background: rgba(59, 130, 246, 0.15);
         color: #60a5fa;
@@ -71,8 +127,8 @@ st.markdown("""
     .status-card {
         background: rgba(30, 41, 59, 0.6);
         border: 1px solid rgba(148, 163, 184, 0.2);
-        border-radius: 10px;
-        padding: 12px;
+        border-radius: 12px;
+        padding: 12px 14px;
         margin-bottom: 12px;
     }
 </style>
@@ -464,15 +520,15 @@ with st.sidebar:
 
     st.divider()
 
-    st.subheader("📊 Model Specifications")
-    st.markdown("""
-    - **Architecture:** Bidirectional LSTM
-    - **Intents:** 28 Categories
-    - **Dataset V2:** 616 Utterances
-    - **Held-out Test Acc:** **60.22%**
-    - **Random Baseline:** 3.57% (1/28)
-    - **Voice Engine:** Web Speech API with Auto-Silence Trigger
-    """)
+    with st.expander("📊 Lab Model Specifications"):
+        st.markdown("""
+        - **Architecture:** Bidirectional LSTM
+        - **Intents:** 28 Categories
+        - **Dataset V2:** 616 Utterances
+        - **Held-out Test Acc:** **60.22%**
+        - **Random Baseline:** 3.57% (1/28)
+        - **Voice Engine:** Web Speech API (Auto-Silence)
+        """)
 
     st.divider()
 
@@ -488,19 +544,63 @@ with st.sidebar:
 # HEADER
 # ─────────────────────────────────────────────────────────
 
-st.title("🎙️ VoiceBot AI")
-st.markdown(
-    "**Hands-Free Voice Chatbot** — click the microphone and speak naturally. "
-    "Your words appear live on screen, and **as soon as you stop speaking**, "
-    "VoiceBot automatically delivers the answer and speaks it aloud!"
-)
+st.markdown("""
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.15);">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="font-size: 2.2rem;">🎙️</span>
+        <div>
+            <h2 style="margin: 0; font-size: 1.7rem; font-weight: 800; background: linear-gradient(135deg, #60a5fa, #a78bfa, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">VoiceBot AI</h2>
+            <p style="margin: 2px 0 0 0; color: #94a3b8; font-size: 0.85rem;">Speech Recognition & Deep Learning Conversational Agent</p>
+        </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px; background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.3); padding: 4px 12px; border-radius: 20px;">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; box-shadow: 0 0 8px #22c55e;"></span>
+        <span style="font-size: 0.76rem; color: #86efac; font-weight: 600;">Hands-Free Voice</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────
-# YOUTUBE-STYLE VOICE MICROPHONE COMPONENT
+# CONVERSATION CHAT HISTORY
 # ─────────────────────────────────────────────────────────
 
-# Render the custom voice widget
+if len(st.session_state.messages) == 0:
+    st.markdown("""
+    <div style="text-align: center; padding: 45px 20px; background: rgba(15, 23, 42, 0.45); border-radius: 16px; border: 1px dashed rgba(148, 163, 184, 0.2); margin: 25px 0;">
+        <div style="font-size: 2.8rem; margin-bottom: 10px;">🎙️</div>
+        <h3 style="margin: 0 0 6px 0; color: #f1f5f9; font-weight: 700;">Ready to Chat</h3>
+        <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">Tap the microphone below to speak naturally, or type your question in the text box.</p>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+            if msg["role"] == "assistant":
+                meta_cols = st.columns([1, 1, 3])
+                engine_name = msg.get("engine", "BiLSTM")
+                intent_name = msg.get("intent", "")
+                conf_val = msg.get("confidence", 1.0)
+
+                with meta_cols[0]:
+                    if "Rollback" in engine_name:
+                        st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
+                    elif "BiLSTM" in engine_name:
+                        st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<span class='badge-llm'>⚡ {engine_name}</span>", unsafe_allow_html=True)
+
+                with meta_cols[1]:
+                    if intent_name and "BiLSTM" in engine_name:
+                        st.caption(f"Intent: `{intent_name}` ({conf_val*100:.1f}%)")
+
+
+# ─────────────────────────────────────────────────────────
+# BOTTOM VOICE & TEXT INPUT DOCK
+# ─────────────────────────────────────────────────────────
+
+# Render the compact YouTube-style voice widget right above the text input
 spoken_data = voice_input_widget(key="youtube_mic_widget")
 
 # Process speech automatically as soon as user stops speaking
@@ -532,47 +632,14 @@ if spoken_data:
 
         st.rerun()
 
-
-# ─────────────────────────────────────────────────────────
-# CONVERSATION CHAT HISTORY
-# ─────────────────────────────────────────────────────────
-
-if len(st.session_state.messages) == 0:
-    st.info("💡 **Ready to talk!** Click the microphone button above and start speaking.")
-else:
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-            if msg["role"] == "assistant":
-                meta_cols = st.columns([1, 1, 3])
-                engine_name = msg.get("engine", "BiLSTM")
-                intent_name = msg.get("intent", "")
-                conf_val = msg.get("confidence", 1.0)
-
-                with meta_cols[0]:
-                    if "Rollback" in engine_name:
-                        st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
-                    elif "BiLSTM" in engine_name:
-                        st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"<span class='badge-llm'>⚡ {engine_name}</span>", unsafe_allow_html=True)
-
-                with meta_cols[1]:
-                    if intent_name and "BiLSTM" in engine_name:
-                        st.caption(f"Intent: `{intent_name}` ({conf_val*100:.1f}%)")
-
-
-# ─────────────────────────────────────────────────────────
-# TEXT INPUT FALLBACK (KEYBOARD)
-# ─────────────────────────────────────────────────────────
-
-typed_input = st.chat_input("Type your question here (or speak into the microphone above)...")
+# Text input fallback directly below the voice mic
+typed_input = st.chat_input("Type your question here (or tap the microphone above)...")
 
 if typed_input:
     user_query = typed_input.strip()
     st.session_state.messages.append({"role": "user", "content": user_query})
 
-    with st.spinner("Analyzing question..."):
+    with st.spinner("Thinking..."):
         agent_data = get_agent_response(user_query, force_local=force_bilstm)
 
     st.session_state.messages.append({
