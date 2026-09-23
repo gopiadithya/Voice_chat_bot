@@ -822,14 +822,28 @@ if spoken_data:
                 if st.session_state.auto_tts:
                     trigger_browser_tts(reply_text)
 
-                # Live caption streaming generator: smoothly streams word-by-word like live subtitles
+                # Live caption streaming generator: parallelized to voice speech timing
                 def stream_live_captions():
+                    if st.session_state.auto_tts:
+                        # Synchronize with Web Speech API audio initialization
+                        time.sleep(0.38)
+
                     tokens = re.split(r'(\s+)', reply_text)
                     for token in tokens:
                         if token:
                             yield token
                             if not token.isspace():
-                                time.sleep(0.038)
+                                if st.session_state.auto_tts:
+                                    # Paced in direct parallel to vocal delivery (~170 WPM)
+                                    word_clean = token.strip()
+                                    delay = 0.15 + (len(word_clean) * 0.016)
+                                    if word_clean.endswith((',', ';', ':')):
+                                        delay += 0.16
+                                    elif word_clean.endswith(('.', '!', '?')):
+                                        delay += 0.28
+                                    time.sleep(delay)
+                                else:
+                                    time.sleep(0.02)
 
                 st.write_stream(stream_live_captions)
 
