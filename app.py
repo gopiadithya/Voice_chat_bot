@@ -1,12 +1,13 @@
 """
 VoiceBot AI — Intelligent Conversational Agent
 ==============================================
-Multimodal voice & text chatbot supporting:
-  - Real-time Speech-to-Text with live on-screen interim transcription
+Multimodal voice & text chatbot featuring:
+  - Real-time Speech-to-Text with live on-screen interim subtitles
   - Automatic Text-to-Speech (TTS) via Web Speech Synthesis
-  - Generative AI responses via LLM APIs (Groq / Gemini / OpenAI) loaded from .env
-  - Offline Deep Learning intent classification via trained BiLSTM model (28 intents)
-  - Interactive chat history with confidence scores & threshold fallbacks
+  - Automatic API fallback & rollback: uses Cloud LLM if available,
+    and automatically/silently shifts to the local BiLSTM deep learning
+    model if the API key is invalid, missing, rate-limited, or fails.
+  - Zero friction: never prompts the end-user for API keys.
 """
 
 import os
@@ -19,9 +20,8 @@ import streamlit as st
 from dotenv import load_dotenv
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from streamlit_mic_recorder import speech_to_text
 
-# Load environment variables from .env
+# Load local .env if available
 load_dotenv()
 
 # ─────────────────────────────────────────────────────────
@@ -35,39 +35,64 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for glowing voice waves and modern chat styling
+# Custom styling
 st.markdown("""
 <style>
-    .live-voice-box {
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
-        border: 1px solid rgba(99, 102, 241, 0.3);
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-    }
     .badge-bilstm {
-        background: rgba(59, 130, 246, 0.2);
+        background: rgba(59, 130, 246, 0.15);
         color: #60a5fa;
-        border: 1px solid #3b82f6;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.8rem;
+        border: 1px solid rgba(59, 130, 246, 0.4);
+        padding: 3px 10px;
+        border-radius: 16px;
+        font-size: 0.78rem;
         font-weight: 600;
         display: inline-block;
     }
     .badge-llm {
-        background: rgba(16, 185, 129, 0.2);
+        background: rgba(16, 185, 129, 0.15);
         color: #34d399;
-        border: 1px solid #10b981;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.8rem;
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        padding: 3px 10px;
+        border-radius: 16px;
+        font-size: 0.78rem;
         font-weight: 600;
         display: inline-block;
     }
+    .badge-fallback {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fbbf24;
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        padding: 3px 10px;
+        border-radius: 16px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+    .status-card {
+        background: rgba(30, 41, 59, 0.6);
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 12px;
+    }
 </style>
 """, unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────
+# SECRET & ENVIRONMENT HELPER
+# ─────────────────────────────────────────────────────────
+
+def get_secret(key_name: str) -> str:
+    """Retrieve secret from .env, environment variable, or Streamlit secrets."""
+    val = os.getenv(key_name, "")
+    if not val:
+        try:
+            if hasattr(st, "secrets") and key_name in st.secrets:
+                val = st.secrets[key_name]
+        except Exception:
+            pass
+    return str(val).strip() if val else ""
 
 
 # ─────────────────────────────────────────────────────────
@@ -117,14 +142,17 @@ if "speech_to_speak" not in st.session_state:
 
 
 # ─────────────────────────────────────────────────────────
-# PREDICTION & GENERATION FUNCTIONS
+# LOCAL DEEP LEARNING INFERENCE (BiLSTM)
 # ─────────────────────────────────────────────────────────
 
 CONFIDENCE_THRESHOLD = 0.45
 
 
-def predict_bilstm(text: str):
-    """Classify user intent using the custom trained BiLSTM neural network."""
+def predict_bilstm(text: str, is_rollback: bool = False):
+    """
+    Classify user intent using the custom trained BiLSTM neural network.
+    Acts as the primary offline model and the automated rollback engine.
+    """
     seq = tokenizer.texts_to_sequences([text.lower().strip()])
     padded = pad_sequences(seq, maxlen=max_len, padding="post", truncating="post")
     probabilities = bilstm_model.predict(padded, verbose=0)[0]
@@ -141,160 +169,199 @@ def predict_bilstm(text: str):
         candidates = intent_responses.get(intent_tag, ["I don't have a response for that."])
         reply = random.choice(candidates)
 
+    engine_label = "BiLSTM (Auto Rollback)" if is_rollback else "BiLSTM Neural Network"
+
     return {
         "reply": reply,
-        "engine": "BiLSTM",
+        "engine": engine_label,
         "intent": intent_tag,
         "confidence": confidence,
     }
 
 
-def generate_llm(messages: list, provider: str, api_key: str):
-    """Generate dynamic conversational reply using a cloud LLM."""
-    system_prompt = (
-        "You are VoiceBot AI, an intelligent, conversational AI assistant modeled after a friendly expert interviewer and tutor. "
-        "Keep your spoken answers concise (2 to 4 sentences), accurate, natural, and conversational so they sound great when read aloud via text-to-speech. "
-        "Avoid long markdown bullet lists, URLs, or complex ASCII formatting."
-    )
+# ─────────────────────────────────────────────────────────
+# CLOUD LLM APIS (OPTIONAL ENHANCEMENT)
+# ─────────────────────────────────────────────────────────
 
-    formatted_messages = [{"role": "system", "content": system_prompt}]
-    # Add last 6 turns of conversation for context
-    for msg in messages[-6:]:
-        formatted_messages.append({"role": msg["role"], "content": msg["content"]})
+SYSTEM_PROMPT = (
+    "You are VoiceBot AI, an intelligent, conversational AI assistant modeled after a friendly expert interviewer and tutor. "
+    "Keep your spoken answers concise (2 to 4 sentences), accurate, natural, and conversational so they sound great when read aloud via text-to-speech. "
+    "Avoid long markdown bullet lists, URLs, or complex ASCII formatting."
+)
 
+
+def try_groq(user_text: str, api_key: str):
+    """Attempt generation via Groq API (Llama 3.3). Returns None on any failure."""
     try:
-        if provider == "Groq":
-            url = "https://api.groq.com/openai/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {api_key.strip()}",
-                "Content-Type": "application/json",
-            }
-            payload = {
-                "model": "llama-3.3-70b-versatile",
-                "messages": formatted_messages,
-                "temperature": 0.7,
-                "max_tokens": 250,
-            }
-            res = requests.post(url, json=payload, headers=headers, timeout=12)
-            if res.status_code == 200:
-                content = res.json()["choices"][0]["message"]["content"].strip()
-                return {"reply": content, "engine": "Groq (Llama 3.3 70B)", "intent": "Generative AI", "confidence": 1.0}
-            else:
-                st.warning(f"Groq API error ({res.status_code}): {res.text}")
+        url = "https://api.groq.com/openai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        for m in st.session_state.messages[-4:]:
+            messages.append({"role": m["role"], "content": m["content"]})
+        messages.append({"role": "user", "content": user_text})
 
-        elif provider == "Google Gemini":
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key.strip()}"
-            prompt_text = system_prompt + "\n\n"
-            for m in messages[-4:]:
-                prompt_text += f"{m['role'].capitalize()}: {m['content']}\n"
-            prompt_text += "Assistant: "
-
-            payload = {
-                "contents": [{"parts": [{"text": prompt_text}]}],
-                "generationConfig": {"maxOutputTokens": 250, "temperature": 0.7}
-            }
-            res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=12)
-            if res.status_code == 200:
-                data = res.json()
-                content = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                return {"reply": content, "engine": "Google Gemini 1.5 Flash", "intent": "Generative AI", "confidence": 1.0}
-            else:
-                st.warning(f"Gemini API error ({res.status_code}): {res.text}")
-
-        elif provider == "OpenAI":
-            url = "https://api.openai.com/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {api_key.strip()}",
-                "Content-Type": "application/json",
-            }
-            payload = {
-                "model": "gpt-4o-mini",
-                "messages": formatted_messages,
-                "temperature": 0.7,
-                "max_tokens": 250,
-            }
-            res = requests.post(url, json=payload, headers=headers, timeout=12)
-            if res.status_code == 200:
-                content = res.json()["choices"][0]["message"]["content"].strip()
-                return {"reply": content, "engine": "OpenAI (GPT-4o mini)", "intent": "Generative AI", "confidence": 1.0}
-            else:
-                st.warning(f"OpenAI API error ({res.status_code}): {res.text}")
-
-    except Exception as e:
-        st.warning(f"LLM API request failed: {e}. Falling back to BiLSTM.")
-
-    # Fallback to local BiLSTM if API call fails
-    return predict_bilstm(messages[-1]["content"])
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": 250,
+        }
+        res = requests.post(url, json=payload, headers=headers, timeout=8)
+        if res.status_code == 200:
+            content = res.json()["choices"][0]["message"]["content"].strip()
+            if content:
+                return {
+                    "reply": content,
+                    "engine": "Cloud AI (Groq Llama 3.3)",
+                    "intent": "Generative AI",
+                    "confidence": 1.0
+                }
+    except Exception:
+        pass
+    return None
 
 
-def get_agent_response(user_text: str, engine_choice: str, api_key: str):
-    """Route input to the appropriate intelligence engine."""
-    # Temporarily append user message to build context for LLM
-    temp_messages = list(st.session_state.messages) + [{"role": "user", "content": user_text}]
+def try_gemini(user_text: str, api_key: str):
+    """Attempt generation via Gemini API. Returns None on any failure."""
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        prompt = SYSTEM_PROMPT + f"\n\nUser: {user_text}\nAssistant: "
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"maxOutputTokens": 250, "temperature": 0.7}
+        }
+        res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=8)
+        if res.status_code == 200:
+            content = res.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+            if content:
+                return {
+                    "reply": content,
+                    "engine": "Cloud AI (Google Gemini)",
+                    "intent": "Generative AI",
+                    "confidence": 1.0
+                }
+    except Exception:
+        pass
+    return None
 
-    if engine_choice == "BiLSTM (Offline Deep Learning)" or not api_key:
-        return predict_bilstm(user_text)
-    else:
-        return generate_llm(temp_messages, engine_choice, api_key)
+
+def try_openai(user_text: str, api_key: str):
+    """Attempt generation via OpenAI API. Returns None on any failure."""
+    try:
+        url = "https://api.openai.com/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_text}
+        ]
+        payload = {
+            "model": "gpt-4o-mini",
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": 250,
+        }
+        res = requests.post(url, json=payload, headers=headers, timeout=8)
+        if res.status_code == 200:
+            content = res.json()["choices"][0]["message"]["content"].strip()
+            if content:
+                return {
+                    "reply": content,
+                    "engine": "Cloud AI (OpenAI GPT-4o)",
+                    "intent": "Generative AI",
+                    "confidence": 1.0
+                }
+    except Exception:
+        pass
+    return None
 
 
 # ─────────────────────────────────────────────────────────
-# SIDEBAR CONFIGURATION
+# RESILIENT RESPONSE ROUTER (ZERO-FRICTION ROLLBACK)
+# ─────────────────────────────────────────────────────────
+
+def get_agent_response(user_text: str, force_local: bool = False):
+    """
+    Intelligent router with automatic rollback:
+      1. If user forces local mode -> Use BiLSTM immediately.
+      2. If cloud API key exists -> Try Cloud LLM.
+      3. If Cloud API fails or is unavailable -> Automatically and silently
+         shift to local BiLSTM deep learning model as fallback.
+    """
+    if force_local:
+        return predict_bilstm(user_text, is_rollback=False)
+
+    groq_key = get_secret("GROQ_API_KEY")
+    gemini_key = get_secret("GEMINI_API_KEY")
+    openai_key = get_secret("OPENAI_API_KEY")
+
+    has_cloud_key = bool(groq_key or gemini_key or openai_key)
+
+    if has_cloud_key:
+        if groq_key:
+            res = try_groq(user_text, groq_key)
+            if res:
+                return res
+
+        if gemini_key:
+            res = try_gemini(user_text, gemini_key)
+            if res:
+                return res
+
+        if openai_key:
+            res = try_openai(user_text, openai_key)
+            if res:
+                return res
+
+        # Automatic Rollback: Cloud API failed or rate-limited, shift to local BiLSTM
+        return predict_bilstm(user_text, is_rollback=True)
+
+    # Default: No cloud key present, use local BiLSTM directly
+    return predict_bilstm(user_text, is_rollback=False)
+
+
+# ─────────────────────────────────────────────────────────
+# SIDEBAR
 # ─────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.header("⚙️ Configuration")
+    st.header("⚙️ System Status")
 
-    # API Keys from environment
-    env_groq = os.getenv("GROQ_API_KEY", "")
-    env_gemini = os.getenv("GEMINI_API_KEY", "")
-    env_openai = os.getenv("OPENAI_API_KEY", "")
+    # Detect background availability of keys
+    groq_k = get_secret("GROQ_API_KEY")
+    gemini_k = get_secret("GEMINI_API_KEY")
+    openai_k = get_secret("OPENAI_API_KEY")
+    has_api = bool(groq_k or gemini_k or openai_k)
 
-    # Engine selection
-    engine_options = [
-        "BiLSTM (Offline Deep Learning)",
-        "Groq",
-        "Google Gemini",
-        "OpenAI",
-    ]
+    # Show active engine info without asking user for any input
+    if has_api:
+        api_name = "Groq (Llama 3.3)" if groq_k else ("Gemini" if gemini_k else "OpenAI")
+        st.markdown(f"""
+        <div class="status-card">
+            <span style="color: #34d399; font-weight: 700;">🟢 Active Engine:</span><br>
+            <span style="font-size: 0.9rem; color: #f1f5f9;">Cloud AI ({api_name})</span><br>
+            <span style="color: #60a5fa; font-size: 0.8rem;">🛡️ Auto-Rollback: <b>BiLSTM Ready</b></span>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div class="status-card">
+            <span style="color: #60a5fa; font-weight: 700;">🧠 Active Engine:</span><br>
+            <span style="font-size: 0.9rem; color: #f1f5f9;">Local BiLSTM Neural Network</span><br>
+            <span style="color: #94a3b8; font-size: 0.8rem;">Self-contained offline model</span>
+        </div>
+        """, unsafe_allow_html=True)
 
-    default_index = 0
-    if env_groq:
-        default_index = 1
-    elif env_gemini:
-        default_index = 2
-    elif env_openai:
-        default_index = 3
-
-    selected_engine = st.selectbox(
-        "🧠 Response Engine",
-        options=engine_options,
-        index=default_index,
-        help="Select whether to use the custom BiLSTM deep learning model or a generative LLM API."
+    force_bilstm = st.toggle(
+        "🧠 Force Local BiLSTM (Lab Mode)",
+        value=False,
+        help="Enable to test exclusively with the custom trained 28-intent BiLSTM deep learning model."
     )
-
-    active_api_key = ""
-    if selected_engine == "Groq":
-        active_api_key = st.text_input(
-            "Groq API Key",
-            value=env_groq,
-            type="password",
-            help="Free key from console.groq.com. Powers ultra-fast Llama 3.3."
-        )
-    elif selected_engine == "Google Gemini":
-        active_api_key = st.text_input(
-            "Gemini API Key",
-            value=env_gemini,
-            type="password",
-            help="From aistudio.google.com"
-        )
-    elif selected_engine == "OpenAI":
-        active_api_key = st.text_input(
-            "OpenAI API Key",
-            value=env_openai,
-            type="password",
-            help="From platform.openai.com"
-        )
 
     st.session_state.auto_tts = st.toggle(
         "🔊 Auto Speak Responses (TTS)",
@@ -304,13 +371,14 @@ with st.sidebar:
 
     st.divider()
 
-    st.subheader("📊 Model Architecture")
+    st.subheader("📊 Model Specifications")
     st.markdown("""
-    - **Model:** Bidirectional LSTM
+    - **Architecture:** Bidirectional LSTM
     - **Intents:** 28 Categories
     - **Dataset V2:** 616 Utterances
     - **Held-out Test Acc:** **60.22%**
     - **Random Baseline:** 3.57% (1/28)
+    - **Rollback System:** Built-in automatic failover
     """)
 
     st.divider()
@@ -327,8 +395,9 @@ with st.sidebar:
 
 st.title("🎙️ VoiceBot AI")
 st.markdown(
-    "**Conversational Voice Agent** powered by a **Bidirectional LSTM** and real-time **Speech-to-Text & Voice Synthesis**. "
-    "Click the microphone to speak, watch your speech appear live on screen, and listen to the agent respond!"
+    "**Conversational Voice Agent** powered by an **end-to-end Deep Learning BiLSTM model** "
+    "with automatic cloud enhancement and live speech streaming. "
+    "Click the microphone to speak, watch your speech appear live on screen, and listen to the response!"
 )
 
 
@@ -336,15 +405,15 @@ st.markdown(
 # LIVE SPEECH RECOGNITION (WEB SPEECH API WITH INTERIM RESULTS)
 # ─────────────────────────────────────────────────────────
 
-# Check if query params received speech from the live component
+# Process speech submitted from the live JavaScript component
 incoming_speech = st.query_params.get("speech", "")
 if incoming_speech:
     st.query_params.clear()
     user_query = incoming_speech.strip()
     if user_query:
         st.session_state.messages.append({"role": "user", "content": user_query})
-        with st.spinner("Analyzing intent & preparing response..."):
-            agent_data = get_agent_response(user_query, selected_engine, active_api_key)
+        with st.spinner("Processing speech & analyzing intent..."):
+            agent_data = get_agent_response(user_query, force_local=force_bilstm)
         st.session_state.messages.append({
             "role": "assistant",
             "content": agent_data["reply"],
@@ -357,7 +426,7 @@ if incoming_speech:
         st.rerun()
 
 
-# Render the interactive Web Speech API Console with LIVE on-screen subtitles
+# Live Voice UI Component (SpeechRecognition with live subtitles)
 live_voice_html = """
 <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #3b82f6; border-radius: 14px; padding: 18px; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
@@ -376,7 +445,7 @@ live_voice_html = """
     <div style="background: rgba(15, 23, 42, 0.7); border: 1px dashed #64748b; border-radius: 10px; padding: 14px; min-height: 52px; display: flex; align-items: center;">
         <span style="color: #64748b; font-size: 12px; margin-right: 8px; font-weight: 700;">LIVE SPEECH:</span>
         <span id="liveTranscript" style="color: #38bdf8; font-size: 15px; font-weight: 500; font-style: italic;">
-            (Click the microphone above and start speaking; your speech will appear here in real-time)
+            (Click the microphone above and speak; your words will appear here in real-time)
         </span>
     </div>
 </div>
@@ -478,9 +547,8 @@ live_voice_html = """
         }
         stopListening();
         const textToSend = finalTranscript.trim() || document.getElementById('liveTranscript').innerText.replace(/^"|"$/g, '').trim();
-        if (textToSend && textToSend !== '(Click the microphone above and start speaking; your speech will appear here in real-time)') {
+        if (textToSend && textToSend !== '(Click the microphone above and speak; your words will appear here in real-time)') {
             document.getElementById('statusIndicator').innerText = 'Submitting query...';
-            // Send to parent Streamlit via query param
             window.parent.location.search = '?speech=' + encodeURIComponent(textToSend);
         }
     }
@@ -500,7 +568,7 @@ else:
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
-            # Display model metadata badge if assistant
+            # Display engine and intent badge
             if msg["role"] == "assistant":
                 meta_cols = st.columns([1, 1, 3])
                 engine_name = msg.get("engine", "BiLSTM")
@@ -508,10 +576,13 @@ else:
                 conf_val = msg.get("confidence", 1.0)
 
                 with meta_cols[0]:
-                    if "BiLSTM" in engine_name:
-                        st.markdown(f"<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
+                    if "Rollback" in engine_name:
+                        st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
+                    elif "BiLSTM" in engine_name:
+                        st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
                     else:
                         st.markdown(f"<span class='badge-llm'>⚡ {engine_name}</span>", unsafe_allow_html=True)
+
                 with meta_cols[1]:
                     if intent_name and "BiLSTM" in engine_name:
                         st.caption(f"Intent: `{intent_name}` ({conf_val*100:.1f}%)")
@@ -527,7 +598,7 @@ if typed_input:
     user_query = typed_input.strip()
     st.session_state.messages.append({"role": "user", "content": user_query})
     with st.spinner("Analyzing question..."):
-        agent_data = get_agent_response(user_query, selected_engine, active_api_key)
+        agent_data = get_agent_response(user_query, force_local=force_bilstm)
     st.session_state.messages.append({
         "role": "assistant",
         "content": agent_data["reply"],
@@ -564,7 +635,6 @@ if st.session_state.speech_to_speak and st.session_state.auto_tts:
             utterance.rate = 1.0;
             utterance.pitch = 1.0;
 
-            // Pick natural English voice if available
             function setVoiceAndSpeak() {{
                 const voices = window.speechSynthesis.getVoices();
                 const preferred = voices.find(v => 
@@ -594,4 +664,4 @@ if st.session_state.speech_to_speak and st.session_state.auto_tts:
 # ─────────────────────────────────────────────────────────
 
 st.markdown("---")
-st.caption("🎙️ VoiceBot AI • Powered by Bidirectional LSTM Neural Network & LLM Generative AI • Web Speech Recognition & Synthesis")
+st.caption("🎙️ VoiceBot AI • Powered by Bidirectional LSTM Neural Network with Automated Cloud Rollback • Web Speech Recognition & Synthesis")
