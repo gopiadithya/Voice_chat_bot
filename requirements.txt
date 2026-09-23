@@ -3,3 +3,5 @@ streamlit-mic-recorder
 tensorflow>=2.15.0
 numpy
 scikit-learn
+python-dotenv
+requests

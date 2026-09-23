@@ -27,9 +27,9 @@
         "is anybody home"
       ],
       "responses": [
-        "Hello! I'm Nova AI, your intelligent conversational voice assistant. How can I help you today?",
-        "Hi there! I'm Nova AI. Ask me anything about machine learning, deep learning, or computer science.",
-        "Hey! Ready to explore artificial intelligence together? What's on your mind?"
+        "Hello! I'm VoiceBot AI. How can I assist you with your AI and computer science questions today?",
+        "Hi there! Ask me anything about machine learning, deep learning, or your coursework.",
+        "Hey! Ready to explore artificial intelligence concepts together? What's on your mind?"
       ]
     },
     {
@@ -123,8 +123,8 @@
         "describe your capabilities"
       ],
       "responses": [
-        "I'm Nova AI, an intelligent conversational voice assistant powered by a Bidirectional LSTM neural network trained to understand technical queries across 28 computer science and AI domains.",
-        "I am Nova AI, a deep learning voice chatbot built with TensorFlow and Streamlit. I use BiLSTM sequence modeling to understand speech and provide intelligent educational responses."
+        "I'm VoiceBot AI, an intelligent conversational agent powered by a Bidirectional LSTM neural network trained specifically for intent classification in computer science and AI.",
+        "I am an educational voice-enabled chatbot developed with TensorFlow and Streamlit. My core model uses BiLSTM sequence modeling to understand speech and text queries."
       ]
     },
     {
