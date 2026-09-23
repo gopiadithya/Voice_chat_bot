@@ -167,7 +167,36 @@ def predict_bilstm(text: str, is_rollback: bool = False):
     Classify user intent using the custom trained BiLSTM neural network.
     Acts as the primary offline model and the automated rollback engine.
     """
-    seq = tokenizer.texts_to_sequences([text.lower().strip()])
+    cleaned = text.lower().strip()
+    words = [w for w in cleaned.split() if len(w) > 1]
+    stopwords = {
+        "what", "is", "a", "an", "the", "tell", "me", "about", "how", "do",
+        "does", "explain", "who", "which", "can", "you", "of", "in", "to", "for", "are"
+    }
+    content_words = [w for w in words if w not in stopwords]
+    oov_content = [w for w in content_words if w not in tokenizer.word_index]
+
+    # Out-of-Domain protection: if content words are mostly unlearned/unknown
+    if content_words and (len(oov_content) / len(content_words) >= 0.6):
+        if is_rollback:
+            reply = (
+                "I am currently operating in offline rollback mode (BiLSTM) because the cloud AI quota is temporarily refreshing. "
+                "My local model is trained specifically on Computer Science and Artificial Intelligence questions. "
+                "Please ask an AI/programming question, or try again in a few moments once the cloud service restores!"
+            )
+        else:
+            reply = (
+                "That topic appears to be outside my local training dataset. "
+                "Please ask about Artificial Intelligence, Machine Learning, Deep Learning, Python, or related topics."
+            )
+        return {
+            "reply": reply,
+            "engine": "BiLSTM (Auto Rollback)" if is_rollback else "BiLSTM Neural Network",
+            "intent": "out_of_domain",
+            "confidence": 0.0,
+        }
+
+    seq = tokenizer.texts_to_sequences([cleaned])
     padded = pad_sequences(seq, maxlen=max_len, padding="post", truncating="post")
     probabilities = bilstm_model.predict(padded, verbose=0)[0]
     predicted_index = int(np.argmax(probabilities))
@@ -206,8 +235,8 @@ SYSTEM_PROMPT = (
 
 def try_gemini(user_text: str, api_key: str):
     """
-    Attempt generation via Gemini API (targeting gemini-2.5-flash with multi-turn memory).
-    Returns None on failure so automatic fallback to BiLSTM seamlessly kicks in.
+    Attempt generation via Gemini API (cycling through supported flash/preview models with multi-turn memory).
+    Returns None on failure so automatic rollback to BiLSTM seamlessly kicks in.
     """
     if not api_key:
         return None
@@ -222,37 +251,44 @@ def try_gemini(user_text: str, api_key: str):
                 contents.append({"role": role, "parts": [{"text": content}]})
     contents.append({"role": "user", "parts": [{"text": user_text}]})
 
-    for model_name in ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-pro", "gemini-1.5-flash"]:
-        for attempt_config in [
-            {"maxOutputTokens": 400, "temperature": 0.7, "thinkingConfig": {"thinkingBudget": 0}},
-            {"maxOutputTokens": 400, "temperature": 0.7}
-        ]:
-            try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key.strip()}"
-                payload = {
-                    "systemInstruction": {
-                        "parts": [{"text": SYSTEM_PROMPT}]
-                    },
-                    "contents": contents,
-                    "generationConfig": attempt_config
+    candidate_models = [
+        "gemini-2.5-flash",
+        "gemini-flash-latest",
+        "gemini-3-flash-preview",
+        "gemini-2.5-pro",
+    ]
+
+    for model_name in candidate_models:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key.strip()}"
+            payload = {
+                "systemInstruction": {
+                    "parts": [{"text": SYSTEM_PROMPT}]
+                },
+                "contents": contents,
+                "generationConfig": {
+                    "maxOutputTokens": 350,
+                    "temperature": 0.7,
+                    "thinkingConfig": {"thinkingBudget": 0}
                 }
-                res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=12)
-                if res.status_code == 200:
-                    data = res.json()
-                    candidates = data.get("candidates", [])
-                    if candidates:
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        if parts and "text" in parts[0]:
-                            content = parts[0]["text"].strip()
-                            if content:
-                                return {
-                                    "reply": content,
-                                    "engine": f"Cloud AI ({model_name.replace('-', ' ').title()})",
-                                    "intent": "Generative AI",
-                                    "confidence": 1.0
-                                }
-            except Exception:
-                continue
+            }
+            res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=8)
+            if res.status_code == 200:
+                data = res.json()
+                candidates = data.get("candidates", [])
+                if candidates:
+                    parts = candidates[0].get("content", {}).get("parts", [])
+                    if parts and "text" in parts[0]:
+                        content = parts[0]["text"].strip()
+                        if content:
+                            return {
+                                "reply": content,
+                                "engine": f"Cloud AI ({model_name.replace('-', ' ').title()})",
+                                "intent": "Generative AI",
+                                "confidence": 1.0
+                            }
+        except Exception:
+            continue
     return None
 
 

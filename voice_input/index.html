@@ -332,6 +332,9 @@
         text: recognizedText,
         ts: Date.now()
       });
+
+      // Automatically reset status back to ready after delivering
+      setTimeout(resetUi, 2500);
     } else {
       resetUi();
     }
