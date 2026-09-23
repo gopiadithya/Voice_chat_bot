@@ -10,6 +10,8 @@ YouTube-style voice conversational assistant:
 """
 
 import os
+import re
+import time
 import json
 import pickle
 import random
@@ -344,6 +346,12 @@ if "last_processed_speech" not in st.session_state:
 if "last_processed_id" not in st.session_state:
     st.session_state.last_processed_id = ""
 
+if "widget_counter" not in st.session_state:
+    st.session_state.widget_counter = 0
+
+if "cleared" not in st.session_state:
+    st.session_state.cleared = False
+
 
 # ─────────────────────────────────────────────────────────
 # LOCAL DEEP LEARNING INFERENCE (BiLSTM)
@@ -677,8 +685,9 @@ with st.sidebar:
     if st.button("🗑️ Clear Conversation", use_container_width=True):
         st.session_state.messages = []
         st.session_state.speech_to_speak = ""
-        st.session_state.last_processed_speech = ""
-        st.session_state.last_processed_id = ""
+        st.session_state.widget_counter += 1
+        st.session_state.cleared = True
+        st.components.v1.html("<script>try { window.speechSynthesis.cancel(); if(window.parent && window.parent.speechSynthesis) window.parent.speechSynthesis.cancel(); } catch(e){}</script>", height=0)
         st.rerun()
 
 
@@ -704,35 +713,73 @@ st.markdown("""
 
 
 # ─────────────────────────────────────────────────────────
-# CONVERSATION CHAT HISTORY
+# BROWSER TEXT-TO-SPEECH HELPER
 # ─────────────────────────────────────────────────────────
 
-if len(st.session_state.messages) == 0:
-    st.markdown("""
-    <div style="text-align: center; padding: 45px 20px; background: rgba(15, 23, 42, 0.45); border-radius: 16px; border: 1px dashed rgba(148, 163, 184, 0.2); margin: 25px 0;">
-        <div style="font-size: 2.8rem; margin-bottom: 10px;">🎙️</div>
-        <h3 style="margin: 0 0 6px 0; color: #f1f5f9; font-weight: 700;">Ready to Chat</h3>
-        <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">Tap the microphone below to speak naturally, or type your question in the text box.</p>
-    </div>
-    """, unsafe_allow_html=True)
-else:
-    for msg in st.session_state.messages:
-        with st.chat_message(msg["role"]):
-            st.markdown(msg["content"])
-            if msg["role"] == "assistant":
-                engine_name = msg.get("engine", "")
-                if "Rollback" in engine_name:
-                    st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
-                elif "BiLSTM" in engine_name and force_bilstm:
-                    st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
+def trigger_browser_tts(text_to_speak: str):
+    """Speaks the response aloud via Web Speech API in parallel with live caption streaming."""
+    clean_text = (
+        text_to_speak.replace("\\", "\\\\")
+        .replace("`", "\\`")
+        .replace('"', '\\"')
+        .replace("\n", " ")
+    )
+    tts_js = f"""
+    <script>
+        (function() {{
+            var synth = window.speechSynthesis;
+            try {{
+                if (window.parent && window.parent.speechSynthesis) {{
+                    synth = window.parent.speechSynthesis;
+                }}
+            }} catch(e) {{}}
+
+            if (synth) {{
+                synth.cancel();
+                var utterance = new SpeechSynthesisUtterance("{clean_text}");
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
+
+                function setVoiceAndSpeak() {{
+                    var voices = synth.getVoices();
+                    var preferred = voices.find(function(v) {{
+                        return v.name.includes('Google UK English Female') || 
+                               v.name.includes('Natural') || 
+                               v.name.includes('Samantha') || 
+                               v.name.includes('Zira') ||
+                               (v.lang && v.lang.startsWith('en'));
+                    }});
+                    if (preferred) utterance.voice = preferred;
+                    synth.speak(utterance);
+                }}
+
+                if (synth.getVoices().length > 0) {{
+                    setVoiceAndSpeak();
+                }} else {{
+                    synth.onvoiceschanged = setVoiceAndSpeak;
+                }}
+            }}
+        }})();
+    </script>
+    """
+    st.components.v1.html(tts_js, height=0)
 
 
 # ─────────────────────────────────────────────────────────
-# UNIFIED BOTTOM DOCK (MIC + TEXT INPUT + STOP BUTTON)
+# CONVERSATION CHAT CONTAINER & HISTORY
 # ─────────────────────────────────────────────────────────
 
-# Render the unified bottom bar containing the Mic, Text input, and Stop button
-spoken_data = voice_input_widget(key="unified_input_bar")
+chat_container = st.container()
+
+# Render unified bottom dock (Mic + Text Input + Stop button)
+dock_container = st.container()
+with dock_container:
+    spoken_data = voice_input_widget(key=f"unified_input_bar_{st.session_state.widget_counter}")
+
+# Guard against clearing
+if st.session_state.get("cleared", False):
+    st.session_state.cleared = False
+    spoken_data = None
 
 # Process submitted query (from either voice recognition or typed text)
 if spoken_data:
@@ -743,77 +790,82 @@ if spoken_data:
         user_query = str(spoken_data).strip()
         query_id = user_query
 
-    # Deduplicate against immediate last user message to prevent double-submits
-    is_duplicate = False
-    if st.session_state.messages:
-        last_msg = st.session_state.messages[-1]
-        if last_msg.get("role") == "user" and last_msg.get("content", "").strip().lower() == user_query.lower():
-            is_duplicate = True
+    is_duplicate = (query_id == st.session_state.get("last_processed_id"))
 
-    if user_query and not is_duplicate and query_id != st.session_state.get("last_processed_id"):
+    if user_query and not is_duplicate:
         st.session_state.last_processed_id = query_id
+
+        with chat_container:
+            # First render prior history
+            for msg in st.session_state.messages:
+                with st.chat_message(msg["role"]):
+                    st.markdown(msg["content"])
+                    if msg["role"] == "assistant":
+                        engine_name = msg.get("engine", "")
+                        if "Rollback" in engine_name:
+                            st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
+                        elif "BiLSTM" in engine_name and force_bilstm:
+                            st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
+
+            # Render current user question
+            with st.chat_message("user"):
+                st.markdown(user_query)
+
+            # Render assistant message with dynamic live caption streaming!
+            with st.chat_message("assistant"):
+                with st.spinner("Thinking..."):
+                    agent_data = get_agent_response(user_query, force_local=force_bilstm)
+
+                reply_text = agent_data["reply"]
+
+                # Trigger browser TTS immediately so words stream in sync with spoken voice
+                if st.session_state.auto_tts:
+                    trigger_browser_tts(reply_text)
+
+                # Live caption streaming generator: smoothly streams word-by-word like live subtitles
+                def stream_live_captions():
+                    tokens = re.split(r'(\s+)', reply_text)
+                    for token in tokens:
+                        if token:
+                            yield token
+                            if not token.isspace():
+                                time.sleep(0.038)
+
+                st.write_stream(stream_live_captions)
+
+                engine_name = agent_data.get("engine", "")
+                if "Rollback" in engine_name:
+                    st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
+                elif "BiLSTM" in engine_name and force_bilstm:
+                    st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
+
+        # Save to session state
         st.session_state.messages.append({"role": "user", "content": user_query})
-
-        with st.spinner("Thinking..."):
-            agent_data = get_agent_response(user_query, force_local=force_bilstm)
-
         st.session_state.messages.append({
             "role": "assistant",
-            "content": agent_data["reply"],
+            "content": reply_text,
             "engine": agent_data.get("engine", "BiLSTM"),
             "intent": agent_data.get("intent", ""),
             "confidence": agent_data.get("confidence", 1.0),
         })
 
-        if st.session_state.auto_tts:
-            st.session_state.speech_to_speak = agent_data["reply"]
-
-        st.rerun()
-
-
-# ─────────────────────────────────────────────────────────
-# AUTOMATIC TEXT-TO-SPEECH (TTS VIA WEB SPEECH SYNTHESIS)
-# ─────────────────────────────────────────────────────────
-
-if st.session_state.speech_to_speak and st.session_state.auto_tts:
-    text_to_speak = (
-        st.session_state.speech_to_speak
-        .replace("\\", "\\\\")
-        .replace("`", "\\`")
-        .replace('"', '\\"')
-        .replace("\n", " ")
-    )
-    # Reset state so it speaks only once per response
-    st.session_state.speech_to_speak = ""
-
-    tts_js = f"""
-    <script>
-        if ('speechSynthesis' in window) {{
-            window.speechSynthesis.cancel();
-            const text = "{text_to_speak}";
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 1.0;
-            utterance.pitch = 1.0;
-
-            function setVoiceAndSpeak() {{
-                const voices = window.speechSynthesis.getVoices();
-                const preferred = voices.find(v => 
-                    v.name.includes('Google UK English Female') || 
-                    v.name.includes('Natural') || 
-                    v.name.includes('Samantha') || 
-                    v.name.includes('Zira') ||
-                    (v.lang && v.lang.startsWith('en'))
-                );
-                if (preferred) utterance.voice = preferred;
-                window.speechSynthesis.speak(utterance);
-            }}
-
-            if (window.speechSynthesis.getVoices().length > 0) {{
-                setVoiceAndSpeak();
-            }} else {{
-                window.speechSynthesis.onvoiceschanged = setVoiceAndSpeak;
-            }}
-        }}
-    </script>
-    """
-    st.components.v1.html(tts_js, height=0)
+else:
+    with chat_container:
+        if len(st.session_state.messages) == 0:
+            st.markdown("""
+            <div style="text-align: center; padding: 45px 20px; background: rgba(15, 23, 42, 0.45); border-radius: 16px; border: 1px dashed rgba(148, 163, 184, 0.2); margin: 25px 0;">
+                <div style="font-size: 2.8rem; margin-bottom: 10px;">🎙️</div>
+                <h3 style="margin: 0 0 6px 0; color: #f1f5f9; font-weight: 700;">Ready to Chat</h3>
+                <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">Tap the microphone below to speak naturally, or type your question in the text box.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            for msg in st.session_state.messages:
+                with st.chat_message(msg["role"]):
+                    st.markdown(msg["content"])
+                    if msg["role"] == "assistant":
+                        engine_name = msg.get("engine", "")
+                        if "Rollback" in engine_name:
+                            st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
+                        elif "BiLSTM" in engine_name and force_bilstm:
+                            st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
