@@ -1,7 +1,5 @@
+streamlit
+streamlit-mic-recorder
 tensorflow>=2.15.0
 numpy
 scikit-learn
-streamlit
-streamlit-mic-recorder
-matplotlib
-seaborn
