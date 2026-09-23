@@ -35,38 +35,140 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom styling with animated ambient background
+# Custom styling with vibrant animated background and glowing cyber orbs
 st.markdown("""
 <style>
-    /* Animated Gradient Background */
+    /* Full App Deep Canvas */
     .stApp {
-        background: 
-            radial-gradient(circle at 18% 22%, rgba(37, 99, 235, 0.16) 0%, transparent 40%),
-            radial-gradient(circle at 82% 18%, rgba(139, 92, 246, 0.18) 0%, transparent 42%),
-            radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.12) 0%, transparent 48%),
-            linear-gradient(180deg, #090d16 0%, #030712 100%) !important;
-        background-attachment: fixed !important;
+        background-color: #030712 !important;
+        overflow-x: hidden;
     }
 
-    /* Ambient floating glowing aura effect */
-    .stApp::before {
-        content: "";
+    /* Ambient animated container */
+    .animated-bg-container {
         position: fixed;
-        top: -40%;
-        left: -40%;
-        width: 180%;
-        height: 180%;
-        background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 15%, transparent 55%),
-                    radial-gradient(circle, rgba(168, 85, 247, 0.04) 35%, transparent 65%);
-        animation: ambientDrift 22s infinite ease-in-out alternate;
-        pointer-events: none;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
         z-index: 0;
+        pointer-events: none;
     }
 
-    @keyframes ambientDrift {
-        0% { transform: translate(0, 0) rotate(0deg); }
-        50% { transform: translate(25px, -35px) rotate(8deg); }
-        100% { transform: translate(-25px, 25px) rotate(-8deg); }
+    /* Floating glowing neon orbs */
+    .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(85px);
+        opacity: 0.65;
+        animation-timing-function: ease-in-out;
+        animation-iteration-count: infinite;
+        animation-direction: alternate;
+    }
+    .orb-1 {
+        width: 520px;
+        height: 520px;
+        background: radial-gradient(circle, #2563eb 0%, #1e40af 60%, transparent 100%);
+        top: -12%;
+        left: -10%;
+        animation: floatOrb1 14s infinite alternate;
+    }
+    .orb-2 {
+        width: 560px;
+        height: 560px;
+        background: radial-gradient(circle, #8b5cf6 0%, #6d28d9 60%, transparent 100%);
+        top: 20%;
+        right: -15%;
+        animation: floatOrb2 17s infinite alternate;
+    }
+    .orb-3 {
+        width: 480px;
+        height: 480px;
+        background: radial-gradient(circle, #06b6d4 0%, #0e7490 60%, transparent 100%);
+        bottom: -10%;
+        left: 10%;
+        animation: floatOrb3 15s infinite alternate;
+    }
+    .orb-4 {
+        width: 420px;
+        height: 420px;
+        background: radial-gradient(circle, #ec4899 0%, #a21caf 60%, transparent 100%);
+        top: 48%;
+        left: 38%;
+        opacity: 0.45;
+        animation: floatOrb4 20s infinite alternate;
+    }
+    .orb-5 {
+        width: 450px;
+        height: 450px;
+        background: radial-gradient(circle, #10b981 0%, #047857 60%, transparent 100%);
+        bottom: 5%;
+        right: 12%;
+        opacity: 0.4;
+        animation: floatOrb5 16s infinite alternate;
+    }
+
+    @keyframes floatOrb1 {
+        0% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(160px, 90px) scale(1.18); }
+        100% { transform: translate(80px, 170px) scale(0.92); }
+    }
+    @keyframes floatOrb2 {
+        0% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(-140px, 90px) scale(1.22); }
+        100% { transform: translate(-90px, -130px) scale(0.88); }
+    }
+    @keyframes floatOrb3 {
+        0% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(120px, -100px) scale(1.15); }
+        100% { transform: translate(-70px, -60px) scale(1.05); }
+    }
+    @keyframes floatOrb4 {
+        0% { transform: translate(0, 0) scale(0.9); }
+        50% { transform: translate(-100px, 120px) scale(1.2); }
+        100% { transform: translate(80px, -90px) scale(0.95); }
+    }
+    @keyframes floatOrb5 {
+        0% { transform: translate(0, 0) scale(1); }
+        50% { transform: translate(-120px, -110px) scale(1.18); }
+        100% { transform: translate(60px, -70px) scale(0.88); }
+    }
+
+    /* Cyber grid overlay */
+    .cyber-grid {
+        position: absolute;
+        inset: 0;
+        background-image: 
+            linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+        background-size: 55px 55px;
+        mask-image: radial-gradient(circle at 50% 50%, black 45%, transparent 88%);
+        pointer-events: none;
+    }
+
+    /* Floating glowing star particles */
+    .particle {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: #38bdf8;
+        border-radius: 50%;
+        box-shadow: 0 0 14px 3px #38bdf8;
+        opacity: 0.75;
+        animation: floatParticle 8s infinite ease-in-out alternate;
+    }
+    .p1 { top: 18%; left: 14%; animation-duration: 9s; }
+    .p2 { top: 32%; right: 18%; animation-duration: 11s; background: #c084fc; box-shadow: 0 0 14px 3px #c084fc; }
+    .p3 { top: 62%; left: 22%; animation-duration: 13s; background: #34d399; box-shadow: 0 0 14px 3px #34d399; }
+    .p4 { top: 78%; right: 28%; animation-duration: 10s; }
+    .p5 { top: 12%; right: 32%; animation-duration: 14s; background: #f472b6; box-shadow: 0 0 14px 3px #f472b6; }
+    .p6 { top: 48%; left: 8%; animation-duration: 12s; }
+
+    @keyframes floatParticle {
+        0% { transform: translateY(0px) translateX(0px); opacity: 0.35; }
+        50% { transform: translateY(-45px) translateX(25px); opacity: 0.95; }
+        100% { transform: translateY(15px) translateX(-20px); opacity: 0.45; }
     }
 
     /* Main container bounds */
@@ -78,36 +180,41 @@ st.markdown("""
         z-index: 1;
     }
 
+    /* Shimmering Holographic Title */
+    @keyframes titleShine {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    .gradient-title {
+        background: linear-gradient(90deg, #60a5fa, #c084fc, #34d399, #38bdf8, #60a5fa);
+        background-size: 300% 300%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: titleShine 5s ease infinite;
+    }
+
     /* Modern Glassmorphism Chat Bubbles */
     div[data-testid="stChatMessage"] {
-        background: rgba(15, 23, 42, 0.65) !important;
-        backdrop-filter: blur(16px) !important;
+        background: rgba(15, 23, 42, 0.72) !important;
+        backdrop-filter: blur(18px) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-radius: 16px !important;
-        padding: 12px 18px !important;
-        margin-bottom: 10px !important;
-        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35) !important;
+        border-radius: 18px !important;
+        padding: 14px 20px !important;
+        margin-bottom: 12px !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
         transition: transform 0.2s ease, border-color 0.2s ease;
     }
 
     div[data-testid="stChatMessage"]:hover {
-        border-color: rgba(96, 165, 250, 0.35) !important;
+        border-color: rgba(96, 165, 250, 0.45) !important;
+        transform: translateY(-1px);
     }
 
     .badge-bilstm {
         background: rgba(59, 130, 246, 0.15);
         color: #60a5fa;
         border: 1px solid rgba(59, 130, 246, 0.4);
-        padding: 3px 10px;
-        border-radius: 16px;
-        font-size: 0.78rem;
-        font-weight: 600;
-        display: inline-block;
-    }
-    .badge-llm {
-        background: rgba(16, 185, 129, 0.15);
-        color: #34d399;
-        border: 1px solid rgba(16, 185, 129, 0.4);
         padding: 3px 10px;
         border-radius: 16px;
         font-size: 0.78rem;
@@ -143,6 +250,22 @@ st.markdown("""
         visibility: hidden !important;
     }
 </style>
+
+<!-- Animated Background Canvas Elements -->
+<div class="animated-bg-container">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="orb orb-4"></div>
+    <div class="orb orb-5"></div>
+    <div class="cyber-grid"></div>
+    <div class="particle p1"></div>
+    <div class="particle p2"></div>
+    <div class="particle p3"></div>
+    <div class="particle p4"></div>
+    <div class="particle p5"></div>
+    <div class="particle p6"></div>
+</div>
 """, unsafe_allow_html=True)
 
 
@@ -560,7 +683,7 @@ st.markdown("""
     <div style="display: flex; align-items: center; gap: 12px;">
         <span style="font-size: 2.2rem;">🎙️</span>
         <div>
-            <h2 style="margin: 0; font-size: 1.7rem; font-weight: 800; background: linear-gradient(135deg, #60a5fa, #a78bfa, #34d399); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">VoiceBot AI</h2>
+            <h2 class="gradient-title" style="margin: 0; font-size: 1.75rem; font-weight: 800;">VoiceBot AI</h2>
             <p style="margin: 2px 0 0 0; color: #94a3b8; font-size: 0.85rem;">Speech Recognition & Deep Learning Conversational Agent</p>
         </div>
     </div>
