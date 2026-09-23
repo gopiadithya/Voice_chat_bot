@@ -293,36 +293,50 @@ def try_gemini(user_text: str, api_key: str):
 
 
 def try_groq(user_text: str, api_key: str):
-    """Attempt generation via Groq API (Llama 3.3). Returns None on failure."""
-    try:
-        url = "https://api.groq.com/openai/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {api_key.strip()}",
-            "Content-Type": "application/json",
-        }
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    """Attempt generation via Groq API (Qwen 3.8 / GPT-OSS / Llama). Returns None on failure."""
+    if not api_key:
+        return None
+
+    groq_models = [
+        "qwen/qwen3.8-27b",
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+        "allam-2-7b",
+        "llama-3.3-70b-versatile",
+    ]
+
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    if "messages" in st.session_state:
         for m in st.session_state.messages[-4:]:
             messages.append({"role": m["role"], "content": m["content"]})
-        messages.append({"role": "user", "content": user_text})
+    messages.append({"role": "user", "content": user_text})
 
-        payload = {
-            "model": "llama-3.3-70b-versatile",
-            "messages": messages,
-            "temperature": 0.7,
-            "max_tokens": 250,
-        }
-        res = requests.post(url, json=payload, headers=headers, timeout=8)
-        if res.status_code == 200:
-            content = res.json()["choices"][0]["message"]["content"].strip()
-            if content:
-                return {
-                    "reply": content,
-                    "engine": "Cloud AI (Groq Llama 3.3)",
-                    "intent": "Generative AI",
-                    "confidence": 1.0
-                }
-    except Exception:
-        pass
+    for model in groq_models:
+        try:
+            url = "https://api.groq.com/openai/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {api_key.strip()}",
+                "Content-Type": "application/json",
+            }
+            payload = {
+                "model": model,
+                "messages": messages,
+                "temperature": 0.7,
+                "max_tokens": 250,
+            }
+            res = requests.post(url, json=payload, headers=headers, timeout=6)
+            if res.status_code == 200:
+                content = res.json()["choices"][0]["message"]["content"].strip()
+                if content:
+                    model_display = model.split("/")[-1].replace("-", " ").title()
+                    return {
+                        "reply": content,
+                        "engine": f"Cloud AI (Groq {model_display})",
+                        "intent": "Generative AI",
+                        "confidence": 1.0
+                    }
+        except Exception:
+            continue
     return None
 
 
@@ -367,7 +381,7 @@ def get_agent_response(user_text: str, force_local: bool = False):
     """
     Intelligent router with automatic rollback:
       1. If user forces local mode -> Use BiLSTM immediately.
-      2. If cloud API key exists -> Try Gemini, Groq, or OpenAI.
+      2. If cloud API key exists -> Try Groq (blazing fast) then Gemini or OpenAI.
       3. If Cloud API fails or is unavailable -> Automatically and silently
          shift to local BiLSTM deep learning model as fallback.
     """
@@ -381,16 +395,19 @@ def get_agent_response(user_text: str, force_local: bool = False):
     has_cloud_key = bool(gemini_key or groq_key or openai_key)
 
     if has_cloud_key:
-        if gemini_key:
-            res = try_gemini(user_text, gemini_key)
-            if res:
-                return res
-
+        # 1. Prioritize Groq: ultra-fast (~0.8s) and high rate limits
         if groq_key:
             res = try_groq(user_text, groq_key)
             if res:
                 return res
 
+        # 2. Try Gemini
+        if gemini_key:
+            res = try_gemini(user_text, gemini_key)
+            if res:
+                return res
+
+        # 3. Try OpenAI
         if openai_key:
             res = try_openai(user_text, openai_key)
             if res:
