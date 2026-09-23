@@ -225,26 +225,28 @@ def try_groq(user_text: str, api_key: str):
 
 
 def try_gemini(user_text: str, api_key: str):
-    """Attempt generation via Gemini API. Returns None on any failure."""
-    try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-        prompt = SYSTEM_PROMPT + f"\n\nUser: {user_text}\nAssistant: "
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"maxOutputTokens": 250, "temperature": 0.7}
-        }
-        res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=8)
-        if res.status_code == 200:
-            content = res.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-            if content:
-                return {
-                    "reply": content,
-                    "engine": "Cloud AI (Google Gemini)",
-                    "intent": "Generative AI",
-                    "confidence": 1.0
-                }
-    except Exception:
-        pass
+    """Attempt generation via Gemini API (targeting gemini-2.5-flash). Returns None on failure."""
+    for model_name in ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash"]:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key.strip()}"
+            prompt = SYSTEM_PROMPT + f"\n\nUser: {user_text}\nAssistant: "
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"maxOutputTokens": 250, "temperature": 0.7}
+            }
+            res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
+            if res.status_code == 200:
+                data = res.json()
+                content = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                if content:
+                    return {
+                        "reply": content,
+                        "engine": f"Cloud AI (Gemini 2.5 Flash)",
+                        "intent": "Generative AI",
+                        "confidence": 1.0
+                    }
+        except Exception:
+            continue
     return None
 
 
@@ -289,27 +291,27 @@ def get_agent_response(user_text: str, force_local: bool = False):
     """
     Intelligent router with automatic rollback:
       1. If user forces local mode -> Use BiLSTM immediately.
-      2. If cloud API key exists -> Try Cloud LLM.
+      2. If cloud API key exists -> Try Cloud LLM (Gemini / Groq / OpenAI).
       3. If Cloud API fails or is unavailable -> Automatically and silently
          shift to local BiLSTM deep learning model as fallback.
     """
     if force_local:
         return predict_bilstm(user_text, is_rollback=False)
 
-    groq_key = get_secret("GROQ_API_KEY")
     gemini_key = get_secret("GEMINI_API_KEY")
+    groq_key = get_secret("GROQ_API_KEY")
     openai_key = get_secret("OPENAI_API_KEY")
 
-    has_cloud_key = bool(groq_key or gemini_key or openai_key)
+    has_cloud_key = bool(gemini_key or groq_key or openai_key)
 
     if has_cloud_key:
-        if groq_key:
-            res = try_groq(user_text, groq_key)
+        if gemini_key:
+            res = try_gemini(user_text, gemini_key)
             if res:
                 return res
 
-        if gemini_key:
-            res = try_gemini(user_text, gemini_key)
+        if groq_key:
+            res = try_groq(user_text, groq_key)
             if res:
                 return res
 
