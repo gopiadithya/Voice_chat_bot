@@ -1,13 +1,12 @@
 """
 VoiceBot AI — Intelligent Conversational Agent
 ==============================================
-Multimodal voice & text chatbot featuring:
-  - Real-time Speech-to-Text with live on-screen interim subtitles
-  - Automatic Text-to-Speech (TTS) via Web Speech Synthesis
-  - Automatic API fallback & rollback: uses Cloud LLM if available,
-    and automatically/silently shifts to the local BiLSTM deep learning
-    model if the API key is invalid, missing, rate-limited, or fails.
-  - Zero friction: never prompts the end-user for API keys.
+YouTube-style voice conversational assistant:
+  - Click to speak -> streams speech live on screen in real time.
+  - Automatic silence detection (stops when you finish speaking, just like YouTube).
+  - Directly delivers response without requiring a submit button.
+  - Speaks answer aloud automatically via Web Speech Synthesis.
+  - Seamless automatic rollback to trained BiLSTM model if cloud API fails.
 """
 
 import os
@@ -17,6 +16,7 @@ import random
 import requests
 import numpy as np
 import streamlit as st
+import streamlit.components.v1 as components
 from dotenv import load_dotenv
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
@@ -84,7 +84,7 @@ st.markdown("""
 # ─────────────────────────────────────────────────────────
 
 def get_secret(key_name: str) -> str:
-    """Retrieve secret from .env, environment variable, or Streamlit secrets."""
+    """Retrieve secret safely from .env, OS environment, or Streamlit secrets."""
     val = os.getenv(key_name, "")
     if not val:
         try:
@@ -128,6 +128,14 @@ max_len = metadata["max_len"]
 
 
 # ─────────────────────────────────────────────────────────
+# YOUTUBE-STYLE CUSTOM VOICE COMPONENT DECLARATION
+# ─────────────────────────────────────────────────────────
+
+voice_component_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "voice_input")
+voice_input_widget = components.declare_component("voice_input_widget", path=voice_component_dir)
+
+
+# ─────────────────────────────────────────────────────────
 # SESSION STATE INITIALIZATION
 # ─────────────────────────────────────────────────────────
 
@@ -139,6 +147,9 @@ if "auto_tts" not in st.session_state:
 
 if "speech_to_speak" not in st.session_state:
     st.session_state.speech_to_speak = ""
+
+if "last_processed_speech" not in st.session_state:
+    st.session_state.last_processed_speech = ""
 
 
 # ─────────────────────────────────────────────────────────
@@ -180,22 +191,48 @@ def predict_bilstm(text: str, is_rollback: bool = False):
 
 
 # ─────────────────────────────────────────────────────────
-# CLOUD LLM APIS (OPTIONAL ENHANCEMENT)
+# CLOUD LLM APIS (GEMINI / GROQ / OPENAI)
 # ─────────────────────────────────────────────────────────
 
 SYSTEM_PROMPT = (
-    "You are VoiceBot AI, an intelligent, conversational AI assistant modeled after a friendly expert interviewer and tutor. "
+    "You are VoiceBot AI, an intelligent, conversational voice assistant modeled after a friendly expert interviewer and tutor. "
     "Keep your spoken answers concise (2 to 4 sentences), accurate, natural, and conversational so they sound great when read aloud via text-to-speech. "
     "Avoid long markdown bullet lists, URLs, or complex ASCII formatting."
 )
 
 
+def try_gemini(user_text: str, api_key: str):
+    """Attempt generation via Gemini API (targeting gemini-2.5-flash). Returns None on failure."""
+    for model_name in ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash"]:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key.strip()}"
+            prompt = SYSTEM_PROMPT + f"\n\nUser: {user_text}\nAssistant: "
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"maxOutputTokens": 250, "temperature": 0.7}
+            }
+            res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
+            if res.status_code == 200:
+                data = res.json()
+                content = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                if content:
+                    return {
+                        "reply": content,
+                        "engine": "Cloud AI (Gemini 2.5 Flash)",
+                        "intent": "Generative AI",
+                        "confidence": 1.0
+                    }
+        except Exception:
+            continue
+    return None
+
+
 def try_groq(user_text: str, api_key: str):
-    """Attempt generation via Groq API (Llama 3.3). Returns None on any failure."""
+    """Attempt generation via Groq API (Llama 3.3). Returns None on failure."""
     try:
         url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {api_key.strip()}",
             "Content-Type": "application/json",
         }
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -224,38 +261,12 @@ def try_groq(user_text: str, api_key: str):
     return None
 
 
-def try_gemini(user_text: str, api_key: str):
-    """Attempt generation via Gemini API (targeting gemini-2.5-flash). Returns None on failure."""
-    for model_name in ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash"]:
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key.strip()}"
-            prompt = SYSTEM_PROMPT + f"\n\nUser: {user_text}\nAssistant: "
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"maxOutputTokens": 250, "temperature": 0.7}
-            }
-            res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
-            if res.status_code == 200:
-                data = res.json()
-                content = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                if content:
-                    return {
-                        "reply": content,
-                        "engine": f"Cloud AI (Gemini 2.5 Flash)",
-                        "intent": "Generative AI",
-                        "confidence": 1.0
-                    }
-        except Exception:
-            continue
-    return None
-
-
 def try_openai(user_text: str, api_key: str):
-    """Attempt generation via OpenAI API. Returns None on any failure."""
+    """Attempt generation via OpenAI API. Returns None on failure."""
     try:
         url = "https://api.openai.com/v1/chat/completions"
         headers = {
-            "Authorization": f"Bearer {api_key}",
+            "Authorization": f"Bearer {api_key.strip()}",
             "Content-Type": "application/json",
         }
         messages = [
@@ -291,7 +302,7 @@ def get_agent_response(user_text: str, force_local: bool = False):
     """
     Intelligent router with automatic rollback:
       1. If user forces local mode -> Use BiLSTM immediately.
-      2. If cloud API key exists -> Try Cloud LLM (Gemini / Groq / OpenAI).
+      2. If cloud API key exists -> Try Gemini, Groq, or OpenAI.
       3. If Cloud API fails or is unavailable -> Automatically and silently
          shift to local BiLSTM deep learning model as fallback.
     """
@@ -334,15 +345,13 @@ def get_agent_response(user_text: str, force_local: bool = False):
 with st.sidebar:
     st.header("⚙️ System Status")
 
-    # Detect background availability of keys
-    groq_k = get_secret("GROQ_API_KEY")
     gemini_k = get_secret("GEMINI_API_KEY")
+    groq_k = get_secret("GROQ_API_KEY")
     openai_k = get_secret("OPENAI_API_KEY")
-    has_api = bool(groq_k or gemini_k or openai_k)
+    has_api = bool(gemini_k or groq_k or openai_k)
 
-    # Show active engine info without asking user for any input
     if has_api:
-        api_name = "Groq (Llama 3.3)" if groq_k else ("Gemini" if gemini_k else "OpenAI")
+        api_name = "Gemini 2.5 Flash" if gemini_k else ("Groq Llama 3.3" if groq_k else "OpenAI")
         st.markdown(f"""
         <div class="status-card">
             <span style="color: #34d399; font-weight: 700;">🟢 Active Engine:</span><br>
@@ -380,7 +389,7 @@ with st.sidebar:
     - **Dataset V2:** 616 Utterances
     - **Held-out Test Acc:** **60.22%**
     - **Random Baseline:** 3.57% (1/28)
-    - **Rollback System:** Built-in automatic failover
+    - **Voice Engine:** Web Speech API with Auto-Silence Trigger
     """)
 
     st.divider()
@@ -388,6 +397,7 @@ with st.sidebar:
     if st.button("🗑️ Clear Conversation", use_container_width=True):
         st.session_state.messages = []
         st.session_state.speech_to_speak = ""
+        st.session_state.last_processed_speech = ""
         st.rerun()
 
 
@@ -397,25 +407,29 @@ with st.sidebar:
 
 st.title("🎙️ VoiceBot AI")
 st.markdown(
-    "**Conversational Voice Agent** powered by an **end-to-end Deep Learning BiLSTM model** "
-    "with automatic cloud enhancement and live speech streaming. "
-    "Click the microphone to speak, watch your speech appear live on screen, and listen to the response!"
+    "**Hands-Free Voice Chatbot** — click the microphone and speak naturally. "
+    "Your words appear live on screen, and **as soon as you stop speaking**, "
+    "VoiceBot automatically delivers the answer and speaks it aloud!"
 )
 
 
 # ─────────────────────────────────────────────────────────
-# LIVE SPEECH RECOGNITION (WEB SPEECH API WITH INTERIM RESULTS)
+# YOUTUBE-STYLE VOICE MICROPHONE COMPONENT
 # ─────────────────────────────────────────────────────────
 
-# Process speech submitted from the live JavaScript component
-incoming_speech = st.query_params.get("speech", "")
-if incoming_speech:
-    st.query_params.clear()
-    user_query = incoming_speech.strip()
-    if user_query:
+# Render the custom voice widget
+spoken_text = voice_input_widget(key="youtube_mic_widget")
+
+# Process speech automatically as soon as user stops speaking
+if spoken_text:
+    user_query = spoken_text.strip()
+    if user_query and user_query != st.session_state.last_processed_speech:
+        st.session_state.last_processed_speech = user_query
         st.session_state.messages.append({"role": "user", "content": user_query})
-        with st.spinner("Processing speech & analyzing intent..."):
+
+        with st.spinner("Thinking..."):
             agent_data = get_agent_response(user_query, force_local=force_bilstm)
+
         st.session_state.messages.append({
             "role": "assistant",
             "content": agent_data["reply"],
@@ -423,141 +437,11 @@ if incoming_speech:
             "intent": agent_data.get("intent", ""),
             "confidence": agent_data.get("confidence", 1.0),
         })
+
         if st.session_state.auto_tts:
             st.session_state.speech_to_speak = agent_data["reply"]
+
         st.rerun()
-
-
-# Live Voice UI Component (SpeechRecognition with live subtitles)
-live_voice_html = """
-<div style="background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid #3b82f6; border-radius: 14px; padding: 18px; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <button id="micBtn" onclick="toggleRecognition()" style="background: #2563eb; color: white; border: none; padding: 10px 18px; border-radius: 25px; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s ease;">
-                <span id="micIcon">🎤</span> <span id="micLabel">Start Speaking</span>
-            </button>
-            <span id="statusIndicator" style="font-size: 13px; color: #94a3b8; font-weight: 500;">Ready — Click microphone to speak</span>
-        </div>
-        <button id="sendBtn" onclick="submitTranscript()" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer; display: none;">
-            🚀 Send Now
-        </button>
-    </div>
-
-    <!-- Live Subtitle Display Box: Shows words in real-time as spoken -->
-    <div style="background: rgba(15, 23, 42, 0.7); border: 1px dashed #64748b; border-radius: 10px; padding: 14px; min-height: 52px; display: flex; align-items: center;">
-        <span style="color: #64748b; font-size: 12px; margin-right: 8px; font-weight: 700;">LIVE SPEECH:</span>
-        <span id="liveTranscript" style="color: #38bdf8; font-size: 15px; font-weight: 500; font-style: italic;">
-            (Click the microphone above and speak; your words will appear here in real-time)
-        </span>
-    </div>
-</div>
-
-<script>
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition = null;
-    let isListening = false;
-    let finalTranscript = '';
-    let silenceTimer = null;
-
-    if (SpeechRecognition) {
-        recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
-
-        recognition.onstart = function() {
-            isListening = true;
-            document.getElementById('micBtn').style.background = '#ef4444';
-            document.getElementById('micBtn').style.boxShadow = '0 0 15px rgba(239, 68, 68, 0.6)';
-            document.getElementById('micIcon').innerText = '⏹️';
-            document.getElementById('micLabel').innerText = 'Stop Recording';
-            document.getElementById('statusIndicator').innerText = '🔴 Listening... Speak naturally';
-            document.getElementById('statusIndicator').style.color = '#ef4444';
-            document.getElementById('sendBtn').style.display = 'inline-block';
-            document.getElementById('liveTranscript').innerText = '';
-            finalTranscript = '';
-        };
-
-        recognition.onresult = function(event) {
-            let interimTranscript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript + ' ';
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
-                }
-            }
-            const fullDisplay = (finalTranscript + interimTranscript).trim();
-            if (fullDisplay) {
-                document.getElementById('liveTranscript').innerText = '"' + fullDisplay + '"';
-                document.getElementById('liveTranscript').style.fontStyle = 'normal';
-                document.getElementById('liveTranscript').style.color = '#38bdf8';
-            }
-
-            // Auto-submit after 2.5 seconds of silence
-            clearTimeout(silenceTimer);
-            silenceTimer = setTimeout(function() {
-                if (isListening && fullDisplay.length > 2) {
-                    submitTranscript();
-                }
-            }, 2500);
-        };
-
-        recognition.onerror = function(event) {
-            console.warn('Speech recognition error:', event.error);
-            document.getElementById('statusIndicator').innerText = 'Notice: ' + event.error;
-            stopListening();
-        };
-
-        recognition.onend = function() {
-            stopListening();
-        };
-    } else {
-        document.getElementById('statusIndicator').innerText = 'Browser Web Speech API not supported. Please use Chrome/Edge or the text input below.';
-    }
-
-    function toggleRecognition() {
-        if (!recognition) {
-            alert('Your browser does not support the Web Speech API. Please use Google Chrome or Microsoft Edge.');
-            return;
-        }
-        if (isListening) {
-            submitTranscript();
-        } else {
-            try {
-                recognition.start();
-            } catch (e) {
-                console.log(e);
-            }
-        }
-    }
-
-    function stopListening() {
-        isListening = false;
-        clearTimeout(silenceTimer);
-        document.getElementById('micBtn').style.background = '#2563eb';
-        document.getElementById('micBtn').style.boxShadow = 'none';
-        document.getElementById('micIcon').innerText = '🎤';
-        document.getElementById('micLabel').innerText = 'Start Speaking';
-        document.getElementById('statusIndicator').innerText = 'Ready — Click microphone to speak';
-        document.getElementById('statusIndicator').style.color = '#94a3b8';
-    }
-
-    function submitTranscript() {
-        if (recognition) {
-            try { recognition.stop(); } catch(e) {}
-        }
-        stopListening();
-        const textToSend = finalTranscript.trim() || document.getElementById('liveTranscript').innerText.replace(/^"|"$/g, '').trim();
-        if (textToSend && textToSend !== '(Click the microphone above and speak; your words will appear here in real-time)') {
-            document.getElementById('statusIndicator').innerText = 'Submitting query...';
-            window.parent.location.search = '?speech=' + encodeURIComponent(textToSend);
-        }
-    }
-</script>
-"""
-
-st.components.v1.html(live_voice_html, height=140)
 
 
 # ─────────────────────────────────────────────────────────
@@ -565,12 +449,11 @@ st.components.v1.html(live_voice_html, height=140)
 # ─────────────────────────────────────────────────────────
 
 if len(st.session_state.messages) == 0:
-    st.info("💡 **Welcome!** Speak into the microphone above or type a question below to start the conversation.")
+    st.info("💡 **Ready to talk!** Click the microphone button above and start speaking.")
 else:
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
-            # Display engine and intent badge
             if msg["role"] == "assistant":
                 meta_cols = st.columns([1, 1, 3])
                 engine_name = msg.get("engine", "BiLSTM")
@@ -591,16 +474,18 @@ else:
 
 
 # ─────────────────────────────────────────────────────────
-# TEXT INPUT (STREAMLIT CHAT INPUT)
+# TEXT INPUT FALLBACK (KEYBOARD)
 # ─────────────────────────────────────────────────────────
 
-typed_input = st.chat_input("Type your question here (or speak using the microphone above)...")
+typed_input = st.chat_input("Type your question here (or speak into the microphone above)...")
 
 if typed_input:
     user_query = typed_input.strip()
     st.session_state.messages.append({"role": "user", "content": user_query})
+
     with st.spinner("Analyzing question..."):
         agent_data = get_agent_response(user_query, force_local=force_bilstm)
+
     st.session_state.messages.append({
         "role": "assistant",
         "content": agent_data["reply"],
@@ -608,8 +493,10 @@ if typed_input:
         "intent": agent_data.get("intent", ""),
         "confidence": agent_data.get("confidence", 1.0),
     })
+
     if st.session_state.auto_tts:
         st.session_state.speech_to_speak = agent_data["reply"]
+
     st.rerun()
 
 
@@ -666,4 +553,4 @@ if st.session_state.speech_to_speak and st.session_state.auto_tts:
 # ─────────────────────────────────────────────────────────
 
 st.markdown("---")
-st.caption("🎙️ VoiceBot AI • Powered by Bidirectional LSTM Neural Network with Automated Cloud Rollback • Web Speech Recognition & Synthesis")
+st.caption("🎙️ VoiceBot AI • YouTube-Style Voice Flow • BiLSTM Deep Learning + Gemini 2.5 Flash • Web Speech Recognition & Synthesis")

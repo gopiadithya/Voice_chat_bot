@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Voice Input Component</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  body {
+    background: transparent;
+    color: #f8fafc;
+    overflow: hidden;
+    padding: 6px;
+  }
+  .container {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95));
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    border-radius: 16px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+  }
+  .top-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+  }
+  /* YouTube style pulsing mic button */
+  .mic-button {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #ef4444;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    outline: none;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+  }
+  .mic-button.idle {
+    background: #2563eb;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+  }
+  .mic-button.idle:hover {
+    transform: scale(1.05);
+    background: #1d4ed8;
+  }
+  .mic-button.listening {
+    background: #ef4444;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 18px rgba(239, 68, 68, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    }
+  }
+  .mic-icon {
+    width: 26px;
+    height: 26px;
+    fill: currentColor;
+  }
+  .info-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .status-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-text.active {
+    color: #ef4444;
+  }
+  .status-text.success {
+    color: #34d399;
+  }
+  .wave-bars {
+    display: none;
+    align-items: center;
+    gap: 3px;
+    height: 16px;
+  }
+  .wave-bar {
+    width: 3px;
+    height: 6px;
+    background: #ef4444;
+    border-radius: 2px;
+    animation: wave 0.8s ease-in-out infinite alternate;
+  }
+  .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+  .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+  .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+  @keyframes wave {
+    0% { height: 4px; }
+    100% { height: 16px; }
+  }
+  /* Live transcript subtitles */
+  .live-box {
+    width: 100%;
+    margin-top: 12px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px dashed rgba(100, 116, 139, 0.4);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    color: #38bdf8;
+    word-break: break-word;
+  }
+  .live-placeholder {
+    color: #64748b;
+    font-style: italic;
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="top-row">
+    <button id="micButton" class="mic-button idle" onclick="toggleListening()">
+      <!-- Mic SVG -->
+      <svg id="svgMic" class="mic-icon" viewBox="0 0 24 24">
+        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+      </svg>
+      <!-- Stop SVG (hidden by default) -->
+      <svg id="svgStop" class="mic-icon" viewBox="0 0 24 24" style="display: none;">
+        <rect x="6" y="6" width="12" height="12" rx="2"/>
+      </svg>
+    </button>
+
+    <div class="info-box">
+      <div id="statusLabel" class="status-text">
+        <span id="statusMessage">Click microphone to speak</span>
+        <div id="waveBars" class="wave-bars">
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+          <div class="wave-bar"></div>
+        </div>
+      </div>
+      <span style="font-size: 12px; color: #64748b; margin-top: 3px;">
+        Auto-answers when you stop speaking (like YouTube)
+      </span>
+    </div>
+  </div>
+
+  <div class="live-box" id="liveBox">
+    <span class="live-placeholder" id="liveText">Your speech will stream here live as you talk...</span>
+  </div>
+</div>
+
+<script>
+  let recognition = null;
+  let isListening = false;
+  let silenceTimer = null;
+  let finalAccumulatedText = "";
+  const SILENCE_TIMEOUT_MS = 1400; // Auto-send after 1.4s of silence
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function sendToStreamlit(value) {
+    window.parent.postMessage({
+      isStreamlitMessage: true,
+      type: "streamlit:setComponentValue",
+      value: value
+    }, "*");
+  }
+
+  function setFrameHeight(height) {
+    window.parent.postMessage({
+      isStreamlitMessage: true,
+      type: "streamlit:setFrameHeight",
+      height: height
+    }, "*");
+  }
+
+  // Initialize Streamlit component handshake
+  window.addEventListener("DOMContentLoaded", () => {
+    window.parent.postMessage({
+      apiVersion: 1,
+      type: "streamlit:componentReady"
+    }, "*");
+    setFrameHeight(165);
+  });
+
+  // Handle render message from Streamlit
+  window.addEventListener("message", (event) => {
+    if (event.data && event.data.type === "streamlit:render") {
+      setFrameHeight(165);
+    }
+  });
+
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+
+    recognition.onstart = () => {
+      isListening = true;
+      finalAccumulatedText = "";
+      document.getElementById("micButton").className = "mic-button listening";
+      document.getElementById("svgMic").style.display = "none";
+      document.getElementById("svgStop").style.display = "block";
+      document.getElementById("statusMessage").innerText = "Listening... Speak now";
+      document.getElementById("statusLabel").className = "status-text active";
+      document.getElementById("waveBars").style.display = "flex";
+      document.getElementById("liveText").className = "";
+      document.getElementById("liveText").innerText = "";
+    };
+
+    recognition.onresult = (event) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalAccumulatedText += event.results[i][0].transcript + " ";
+        } else {
+          interim += event.results[i][0].transcript;
+        }
+      }
+
+      const currentLive = (finalAccumulatedText + interim).trim();
+      if (currentLive) {
+        document.getElementById("liveText").innerText = '"' + currentLive + '"';
+      }
+
+      // YouTube-style: automatically finish and reply after user pauses
+      clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => {
+        if (isListening && currentLive.length > 1) {
+          finishAndSubmit();
+        }
+      }, SILENCE_TIMEOUT_MS);
+    };
+
+    recognition.onerror = (event) => {
+      console.warn("Speech recognition notice:", event.error);
+      if (event.error !== "no-speech") {
+        document.getElementById("statusMessage").innerText = "Status: " + event.error;
+      }
+      resetUi();
+    };
+
+    recognition.onend = () => {
+      if (isListening) {
+        // If ended unexpectedly with text, submit it
+        const text = finalAccumulatedText.trim();
+        if (text) {
+          finishAndSubmit();
+        } else {
+          resetUi();
+        }
+      }
+    };
+  }
+
+  function toggleListening() {
+    if (!recognition) {
+      alert("Web Speech API is not supported in this browser. Please use Google Chrome or Microsoft Edge.");
+      return;
+    }
+    if (isListening) {
+      finishAndSubmit();
+    } else {
+      try {
+        recognition.start();
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }
+
+  function finishAndSubmit() {
+    isListening = false;
+    clearTimeout(silenceTimer);
+    if (recognition) {
+      try { recognition.stop(); } catch (e) {}
+    }
+
+    const recognizedText = finalAccumulatedText.trim() || document.getElementById("liveText").innerText.replace(/^"|"$/g, "").trim();
+
+    if (recognizedText && recognizedText !== "Your speech will stream here live as you talk...") {
+      document.getElementById("statusMessage").innerText = "Processing answer...";
+      document.getElementById("statusLabel").className = "status-text success";
+      document.getElementById("waveBars").style.display = "none";
+      document.getElementById("micButton").className = "mic-button idle";
+      document.getElementById("svgMic").style.display = "block";
+      document.getElementById("svgStop").style.display = "none";
+
+      // Directly deliver recognized text to Streamlit!
+      sendToStreamlit(recognizedText);
+    } else {
+      resetUi();
+    }
+  }
+
+  function resetUi() {
+    isListening = false;
+    clearTimeout(silenceTimer);
+    document.getElementById("micButton").className = "mic-button idle";
+    document.getElementById("svgMic").style.display = "block";
+    document.getElementById("svgStop").style.display = "none";
+    document.getElementById("statusMessage").innerText = "Click microphone to speak";
+    document.getElementById("statusLabel").className = "status-text";
+    document.getElementById("waveBars").style.display = "none";
+    document.getElementById("liveText").className = "live-placeholder";
+    document.getElementById("liveText").innerText = "Your speech will stream here live as you talk...";
+  }
+</script>
+
+</body>
+</html>
