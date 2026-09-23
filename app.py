@@ -151,6 +151,9 @@ if "speech_to_speak" not in st.session_state:
 if "last_processed_speech" not in st.session_state:
     st.session_state.last_processed_speech = ""
 
+if "last_processed_id" not in st.session_state:
+    st.session_state.last_processed_id = ""
+
 
 # ─────────────────────────────────────────────────────────
 # LOCAL DEEP LEARNING INFERENCE (BiLSTM)
@@ -202,28 +205,54 @@ SYSTEM_PROMPT = (
 
 
 def try_gemini(user_text: str, api_key: str):
-    """Attempt generation via Gemini API (targeting gemini-2.5-flash). Returns None on failure."""
-    for model_name in ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-1.5-flash"]:
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key.strip()}"
-            prompt = SYSTEM_PROMPT + f"\n\nUser: {user_text}\nAssistant: "
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"maxOutputTokens": 250, "temperature": 0.7}
-            }
-            res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=15)
-            if res.status_code == 200:
-                data = res.json()
-                content = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-                if content:
-                    return {
-                        "reply": content,
-                        "engine": "Cloud AI (Gemini 2.5 Flash)",
-                        "intent": "Generative AI",
-                        "confidence": 1.0
-                    }
-        except Exception:
-            continue
+    """
+    Attempt generation via Gemini API (targeting gemini-2.5-flash with multi-turn memory).
+    Returns None on failure so automatic fallback to BiLSTM seamlessly kicks in.
+    """
+    if not api_key:
+        return None
+
+    # Build multi-turn context
+    contents = []
+    if "messages" in st.session_state:
+        for msg in st.session_state.messages[-6:]:
+            role = "user" if msg.get("role") == "user" else "model"
+            content = msg.get("content", "").strip()
+            if content:
+                contents.append({"role": role, "parts": [{"text": content}]})
+    contents.append({"role": "user", "parts": [{"text": user_text}]})
+
+    for model_name in ["gemini-2.5-flash", "gemini-flash-latest", "gemini-2.5-pro", "gemini-1.5-flash"]:
+        for attempt_config in [
+            {"maxOutputTokens": 400, "temperature": 0.7, "thinkingConfig": {"thinkingBudget": 0}},
+            {"maxOutputTokens": 400, "temperature": 0.7}
+        ]:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key.strip()}"
+                payload = {
+                    "systemInstruction": {
+                        "parts": [{"text": SYSTEM_PROMPT}]
+                    },
+                    "contents": contents,
+                    "generationConfig": attempt_config
+                }
+                res = requests.post(url, json=payload, headers={"Content-Type": "application/json"}, timeout=12)
+                if res.status_code == 200:
+                    data = res.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts and "text" in parts[0]:
+                            content = parts[0]["text"].strip()
+                            if content:
+                                return {
+                                    "reply": content,
+                                    "engine": f"Cloud AI ({model_name.replace('-', ' ').title()})",
+                                    "intent": "Generative AI",
+                                    "confidence": 1.0
+                                }
+            except Exception:
+                continue
     return None
 
 
@@ -398,6 +427,7 @@ with st.sidebar:
         st.session_state.messages = []
         st.session_state.speech_to_speak = ""
         st.session_state.last_processed_speech = ""
+        st.session_state.last_processed_id = ""
         st.rerun()
 
 
@@ -418,13 +448,19 @@ st.markdown(
 # ─────────────────────────────────────────────────────────
 
 # Render the custom voice widget
-spoken_text = voice_input_widget(key="youtube_mic_widget")
+spoken_data = voice_input_widget(key="youtube_mic_widget")
 
 # Process speech automatically as soon as user stops speaking
-if spoken_text:
-    user_query = spoken_text.strip()
-    if user_query and user_query != st.session_state.last_processed_speech:
-        st.session_state.last_processed_speech = user_query
+if spoken_data:
+    if isinstance(spoken_data, dict):
+        user_query = str(spoken_data.get("text", "")).strip()
+        query_id = str(spoken_data.get("ts", user_query))
+    else:
+        user_query = str(spoken_data).strip()
+        query_id = user_query
+
+    if user_query and query_id != st.session_state.get("last_processed_id"):
+        st.session_state.last_processed_id = query_id
         st.session_state.messages.append({"role": "user", "content": user_query})
 
         with st.spinner("Thinking..."):
