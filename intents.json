@@ -1,0 +1,851 @@
+{
+  "intents": [
+    {
+      "tag": "greeting",
+      "patterns": [
+        "hello",
+        "hi",
+        "hey",
+        "good morning",
+        "good afternoon",
+        "good evening",
+        "what's up",
+        "howdy",
+        "hi there",
+        "greetings",
+        "hey there",
+        "hello bot",
+        "morning",
+        "evening",
+        "yo",
+        "how are you",
+        "how is it going",
+        "nice to meet you",
+        "hello there",
+        "hey voicebot",
+        "anyone there",
+        "is anybody home"
+      ],
+      "responses": [
+        "Hello! I'm VoiceBot AI. How can I assist you with your AI and computer science questions today?",
+        "Hi there! Ask me anything about machine learning, deep learning, or your coursework.",
+        "Hey! Ready to explore artificial intelligence concepts together? What's on your mind?"
+      ]
+    },
+    {
+      "tag": "goodbye",
+      "patterns": [
+        "bye",
+        "goodbye",
+        "see you later",
+        "see you",
+        "take care",
+        "talk to you later",
+        "catch you later",
+        "I'm leaving",
+        "good night",
+        "bye bye",
+        "farewell",
+        "have a good day",
+        "I'm done for now",
+        "exit",
+        "quit",
+        "see ya",
+        "catch you soon",
+        "signing off",
+        "got to run",
+        "have a great one",
+        "peace out",
+        "bye for now"
+      ],
+      "responses": [
+        "Goodbye! Have a great day and keep learning!",
+        "See you later! Feel free to come back whenever you have AI questions.",
+        "Take care! Wishing you the best with your studies and projects."
+      ]
+    },
+    {
+      "tag": "thanks",
+      "patterns": [
+        "thanks",
+        "thank you",
+        "that's helpful",
+        "thanks a lot",
+        "thank you so much",
+        "I appreciate it",
+        "much appreciated",
+        "thanks for the help",
+        "that was useful",
+        "great thanks",
+        "thank you kindly",
+        "cheers",
+        "awesome thank you",
+        "many thanks",
+        "thanks a ton",
+        "that clarified it",
+        "thanks for explaining",
+        "super helpful thanks",
+        "you helped me a lot",
+        "thanks bot",
+        "thank you very much",
+        "really appreciate your answer"
+      ],
+      "responses": [
+        "You're very welcome! Glad I could make things clearer.",
+        "Anytime! Don't hesitate to ask if another concept comes up.",
+        "Happy to help! Keep up the great curious work."
+      ]
+    },
+    {
+      "tag": "about_bot",
+      "patterns": [
+        "who are you",
+        "what are you",
+        "tell me about yourself",
+        "what can you do",
+        "what is your name",
+        "who made you",
+        "what is your purpose",
+        "what do you do",
+        "introduce yourself",
+        "are you a bot",
+        "give me your background",
+        "what kind of assistant are you",
+        "how were you built",
+        "who created this chatbot",
+        "what model powers you",
+        "tell me your story",
+        "what is this project",
+        "explain your architecture to me",
+        "can you introduce yourself",
+        "what are your skills",
+        "what are you designed for",
+        "describe your capabilities"
+      ],
+      "responses": [
+        "I'm VoiceBot AI, an intelligent conversational agent powered by a Bidirectional LSTM neural network trained specifically for intent classification in computer science and AI.",
+        "I am an educational voice-enabled chatbot developed with TensorFlow and Streamlit. My core model uses BiLSTM sequence modeling to understand speech and text queries."
+      ]
+    },
+    {
+      "tag": "help",
+      "patterns": [
+        "help",
+        "I need help",
+        "can you help me",
+        "what can I ask you",
+        "how do I use this",
+        "what topics do you cover",
+        "what do you know about",
+        "list your capabilities",
+        "what can you answer",
+        "show me what you can do",
+        "guide me",
+        "instructions please",
+        "how does this chatbot work",
+        "how do I operate this app",
+        "what queries are supported",
+        "give me a list of topics",
+        "suggest questions to ask",
+        "how can you assist me",
+        "what subjects do you understand",
+        "give me some guidance",
+        "need some direction",
+        "where do I begin"
+      ],
+      "responses": [
+        "I can answer questions across 28 technical topics: AI, ML, Deep Learning, CNNs, RNNs, Transformers, LLMs, Computer Vision, NLP, Data Science, Python, PyTorch, TensorFlow, SQL, DSA, and study/project guidance! You can speak or type your question."
+      ]
+    },
+    {
+      "tag": "artificial_intelligence",
+      "patterns": [
+        "what is artificial intelligence",
+        "define artificial intelligence",
+        "explain artificial intelligence",
+        "what is ai",
+        "tell me about ai",
+        "what does ai mean",
+        "describe artificial intelligence",
+        "how does ai work",
+        "what are applications of ai",
+        "give me an overview of ai",
+        "history of artificial intelligence",
+        "what is the definition of ai",
+        "can you summarize artificial intelligence",
+        "what fields are in ai",
+        "how is ai changing technology",
+        "what are real world uses of ai",
+        "explain the concept of ai to a beginner",
+        "why is artificial intelligence important",
+        "what makes a system artificially intelligent",
+        "types of artificial intelligence",
+        "narrow ai vs general ai",
+        "what are the branches of ai"
+      ],
+      "responses": [
+        "Artificial Intelligence (AI) refers to computer systems engineered to simulate human intelligence. This encompasses perception, language comprehension, reasoning, learning, and automated decision-making. Core branches include Machine Learning, Robotics, Computer Vision, and Natural Language Processing."
+      ]
+    },
+    {
+      "tag": "machine_learning",
+      "patterns": [
+        "what is machine learning",
+        "define machine learning",
+        "explain machine learning",
+        "what is ml",
+        "tell me about machine learning",
+        "how does machine learning work",
+        "what are types of machine learning",
+        "describe machine learning",
+        "what is the difference between ai and ml",
+        "give me an overview of machine learning",
+        "how do machines learn",
+        "explain machine learning simply",
+        "what is the machine learning workflow",
+        "what are ml algorithms",
+        "can you explain the basics of ml",
+        "what is feature extraction in ml",
+        "what is model training",
+        "what is an ml pipeline",
+        "why do we need machine learning",
+        "how does an ml model make predictions",
+        "difference between traditional programming and machine learning",
+        "what does machine learning do"
+      ],
+      "responses": [
+        "Machine Learning (ML) is a subset of AI where mathematical models learn statistical patterns directly from data rather than following hardcoded rules. The primary paradigms are Supervised Learning, Unsupervised Learning, and Reinforcement Learning."
+      ]
+    },
+    {
+      "tag": "deep_learning",
+      "patterns": [
+        "what is deep learning",
+        "define deep learning",
+        "explain deep learning",
+        "what is dl",
+        "tell me about deep learning",
+        "how does deep learning work",
+        "what is the difference between ml and deep learning",
+        "describe deep learning",
+        "why is deep learning important",
+        "give me an overview of deep learning",
+        "what makes deep learning deep",
+        "explain deep neural architectures",
+        "when should I use deep learning",
+        "why do we need deep learning models",
+        "how does deep learning extract features",
+        "what problems does deep learning solve best",
+        "can you summarize deep learning",
+        "deep learning versus classic machine learning",
+        "what hardware is needed for deep learning",
+        "why are gpus used in deep learning",
+        "how do deep networks learn representations",
+        "introduction to deep learning"
+      ],
+      "responses": [
+        "Deep Learning is a specialized branch of Machine Learning centered on artificial neural networks with multiple representation layers (deep architectures). By stacking layers, deep networks automatically discover hierarchical feature representations directly from raw inputs like audio, pixels, and text."
+      ]
+    },
+    {
+      "tag": "neural_network",
+      "patterns": [
+        "what is a neural network",
+        "define neural network",
+        "explain neural networks",
+        "how do neural networks work",
+        "tell me about neural networks",
+        "what are the types of neural networks",
+        "describe neural networks",
+        "what is an artificial neural network",
+        "what are layers in a neural network",
+        "how does a neural network learn",
+        "what are weights and biases in a neural network",
+        "what is an activation function",
+        "explain forward propagation",
+        "what is backpropagation",
+        "how do neurons communicate in a network",
+        "what is a perceptron",
+        "multistage perceptron explanation",
+        "what is loss function in neural networks",
+        "gradient descent in neural networks",
+        "what are hidden layers",
+        "how does backprop update weights",
+        "explain the structure of a neural network"
+      ],
+      "responses": [
+        "An Artificial Neural Network (ANN) consists of input, hidden, and output layers of interconnected computational nodes (neurons). Each connection has an adjustable weight. Through forward propagation and backpropagation with gradient descent, the network updates weights to minimize prediction error."
+      ]
+    },
+    {
+      "tag": "computer_vision",
+      "patterns": [
+        "what is computer vision",
+        "define computer vision",
+        "explain computer vision",
+        "tell me about computer vision",
+        "how does computer vision work",
+        "what are applications of computer vision",
+        "describe computer vision",
+        "what is cv in ai",
+        "what is image recognition",
+        "what can computer vision do",
+        "how do computers see images",
+        "what is object detection",
+        "image segmentation explanation",
+        "how does facial recognition work",
+        "what is yolo in computer vision",
+        "what are filters in image processing",
+        "give examples of computer vision systems",
+        "how do self driving cars see the road",
+        "what is visual feature extraction",
+        "opencv and computer vision overview",
+        "what are bounding boxes",
+        "tasks in computer vision"
+      ],
+      "responses": [
+        "Computer Vision (CV) is the field of AI that equips computers to interpret, analyze, and make decisions from visual inputs such as digital images and video streams. Major tasks include image classification, object detection (e.g., YOLO), semantic segmentation, and facial verification."
+      ]
+    },
+    {
+      "tag": "nlp",
+      "patterns": [
+        "what is natural language processing",
+        "define nlp",
+        "explain nlp",
+        "what is nlp",
+        "tell me about natural language processing",
+        "how does nlp work",
+        "what are applications of nlp",
+        "describe nlp",
+        "what is text processing",
+        "what can nlp do",
+        "how do machines understand human language",
+        "what is sentiment analysis",
+        "tokenization in nlp",
+        "what is stemming and lemmatization",
+        "explain named entity recognition",
+        "what is machine translation",
+        "how does text summarization work",
+        "what are word embeddings in nlp",
+        "what is word2vec",
+        "difference between nlu and nlg",
+        "challenges in natural language processing",
+        "what are common nlp tasks"
+      ],
+      "responses": [
+        "Natural Language Processing (NLP) sits at the intersection of computer science, linguistics, and machine learning. It focuses on enabling computers to read, interpret, analyze, and synthesize human language for tasks like sentiment analysis, machine translation, and speech-to-text systems."
+      ]
+    },
+    {
+      "tag": "data_science",
+      "patterns": [
+        "what is data science",
+        "define data science",
+        "explain data science",
+        "what does a data scientist do",
+        "tell me about data science",
+        "what is the data science lifecycle",
+        "skills needed for data science",
+        "difference between data science and machine learning",
+        "what is exploratory data analysis",
+        "what is eda",
+        "why is data cleaning important",
+        "what is feature engineering",
+        "tools used in data science",
+        "what is data visualization",
+        "explain pandas and numpy in data science",
+        "how does data science create business value",
+        "what is big data",
+        "how to become a data scientist",
+        "role of statistics in data science",
+        "what is a dataset",
+        "how do you handle missing values",
+        "data science overview"
+      ],
+      "responses": [
+        "Data Science is an interdisciplinary field combining domain expertise, statistics, mathematics, and programming to uncover actionable insights from raw data. Its workflow includes data collection, cleaning, exploratory data analysis (EDA), feature engineering, modeling, and storytelling through visualization."
+      ]
+    },
+    {
+      "tag": "supervised_learning",
+      "patterns": [
+        "what is supervised learning",
+        "define supervised learning",
+        "explain supervised learning",
+        "how does supervised learning work",
+        "give examples of supervised learning",
+        "what is labeled data",
+        "difference between regression and classification",
+        "what are supervised learning algorithms",
+        "explain classification in supervised learning",
+        "explain regression in supervised learning",
+        "linear regression vs logistic regression",
+        "what is a target variable",
+        "how does a supervised model train",
+        "applications of supervised learning",
+        "support vector machines in supervised learning",
+        "random forest in supervised learning",
+        "decision trees supervised learning",
+        "what is training set and test set",
+        "ground truth in machine learning",
+        "when should I use supervised learning",
+        "supervised machine learning overview",
+        "tell me about supervised learning"
+      ],
+      "responses": [
+        "Supervised Learning trains models on labeled datasets where each input comes with a known ground-truth output. It addresses two primary problems: Classification (predicting discrete categorical labels) and Regression (predicting continuous numerical quantities)."
+      ]
+    },
+    {
+      "tag": "unsupervised_learning",
+      "patterns": [
+        "what is unsupervised learning",
+        "define unsupervised learning",
+        "explain unsupervised learning",
+        "how does unsupervised learning work",
+        "give examples of unsupervised learning",
+        "what is unlabeled data",
+        "what is clustering",
+        "k-means clustering explained",
+        "what is dimensionality reduction",
+        "explain principal component analysis",
+        "what is pca",
+        "anomaly detection in unsupervised learning",
+        "how does clustering discover patterns",
+        "difference between supervised and unsupervised learning",
+        "hierarchical clustering overview",
+        "what is t-sne",
+        "market basket analysis unsupervised",
+        "when do we use unsupervised learning",
+        "customer segmentation unsupervised learning",
+        "unsupervised machine learning concepts",
+        "association rule learning",
+        "tell me about unsupervised learning"
+      ],
+      "responses": [
+        "Unsupervised Learning analyzes datasets without pre-existing labels or human supervision. It identifies intrinsic groupings, hidden structures, and distributions through techniques like Clustering (e.g., K-Means, DBSCAN) and Dimensionality Reduction (e.g., PCA, t-SNE)."
+      ]
+    },
+    {
+      "tag": "reinforcement_learning",
+      "patterns": [
+        "what is reinforcement learning",
+        "define reinforcement learning",
+        "explain reinforcement learning",
+        "how does reinforcement learning work",
+        "tell me about rl",
+        "what is an agent and environment in rl",
+        "what is reward function",
+        "exploration vs exploitation in reinforcement learning",
+        "what is q-learning",
+        "what is markov decision process",
+        "what is mdp in rl",
+        "give examples of reinforcement learning",
+        "how do game playing ai models work",
+        "deep q networks explained",
+        "alphago reinforcement learning",
+        "policy gradient methods",
+        "what is state action reward",
+        "reinforcement learning for robotics",
+        "reinforcement learning from human feedback",
+        "what is rlhf",
+        "applications of reinforcement learning",
+        "explain the rl framework"
+      ],
+      "responses": [
+        "Reinforcement Learning (RL) is a paradigm where an autonomous agent learns optimal behaviors by interacting with an environment. The agent takes actions, transitions states, and receives numerical rewards or penalties, optimizing its policy via trial and error to maximize cumulative future reward."
+      ]
+    },
+    {
+      "tag": "cnn",
+      "patterns": [
+        "what is a cnn",
+        "what is a convolutional neural network",
+        "define cnn",
+        "explain convolutional neural networks",
+        "how do cnns work",
+        "tell me about cnn",
+        "what is convolution operation",
+        "what are convolutional layers",
+        "what is pooling in cnn",
+        "max pooling vs average pooling",
+        "why are cnns good for images",
+        "what is stride and padding in cnn",
+        "what are feature maps",
+        "what is a kernel in cnn",
+        "explain filter in convolutional networks",
+        "flatten layer in cnn",
+        "popular cnn architectures like resnet and vgg",
+        "what is resnet",
+        "transfer learning with cnn",
+        "difference between cnn and ann",
+        "why do cnns have spatial invariance",
+        "architecture of convolutional neural network"
+      ],
+      "responses": [
+        "A Convolutional Neural Network (CNN) is designed to process grid-structured data like 2D images. CNNs apply learnable sliding convolutional kernels (filters) to detect local spatial hierarchies—edges, textures, shapes—followed by pooling operations to achieve spatial translation invariance."
+      ]
+    },
+    {
+      "tag": "rnn",
+      "patterns": [
+        "what is an rnn",
+        "what is a recurrent neural network",
+        "define rnn",
+        "explain recurrent neural networks",
+        "how do rnns work",
+        "tell me about rnn",
+        "what is sequential data",
+        "why use rnn for time series",
+        "what is vanishing gradient problem in rnn",
+        "what is exploding gradient problem",
+        "how does an rnn maintain hidden state",
+        "what is an lstm",
+        "what is long short term memory",
+        "what is a gru",
+        "how does lstm solve vanishing gradient",
+        "what are gates in lstm",
+        "forget gate input gate output gate",
+        "bidirectional rnn and bilstm",
+        "why use bilstm for text classification",
+        "difference between cnn and rnn",
+        "limitations of recurrent neural networks",
+        "rnn architecture explained"
+      ],
+      "responses": [
+        "Recurrent Neural Networks (RNNs) process sequential inputs by maintaining an internal hidden state memory across time steps. Advanced variants like LSTMs (Long Short-Term Memory) and GRUs introduce gating mechanisms to solve the vanishing gradient problem, enabling the network to learn long-term temporal dependencies."
+      ]
+    },
+    {
+      "tag": "transformer",
+      "patterns": [
+        "what is a transformer model",
+        "define transformer in ai",
+        "explain transformer neural networks",
+        "how do transformers work",
+        "tell me about transformer models",
+        "what is attention mechanism",
+        "what is self attention",
+        "multi head attention explained",
+        "why are transformers better than rnns",
+        "explain attention is all you need",
+        "what is positional encoding in transformers",
+        "encoder decoder architecture in transformers",
+        "why do transformers scale so well",
+        "what is query key value in attention",
+        "q k v matrices in self attention",
+        "feed forward layers in transformers",
+        "bert and gpt transformer models",
+        "vision transformers vit",
+        "parallel processing in transformers",
+        "what makes transformers powerful",
+        "how do attention weights work",
+        "transformer architecture deep dive"
+      ],
+      "responses": [
+        "The Transformer architecture replaces recurrence entirely with the Multi-Head Self-Attention mechanism. Self-attention enables the model to weigh relationships between all tokens in a sequence simultaneously and in parallel, drastically improving long-range dependency capture and training efficiency on modern hardware."
+      ]
+    },
+    {
+      "tag": "generative_ai",
+      "patterns": [
+        "what is generative ai",
+        "define generative ai",
+        "explain generative ai",
+        "what is gen ai",
+        "tell me about generative artificial intelligence",
+        "how does generative ai work",
+        "what are generative models",
+        "difference between discriminative and generative models",
+        "what is a gan",
+        "generative adversarial networks explained",
+        "generator vs discriminator in gan",
+        "what are diffusion models",
+        "how do diffusion models generate images",
+        "stable diffusion and dall-e",
+        "what are variational autoencoders",
+        "what is a vae",
+        "applications of generative ai",
+        "synthetic data generation",
+        "creative applications of ai",
+        "text to image generation explained",
+        "ethical considerations in generative ai",
+        "overview of generative artificial intelligence"
+      ],
+      "responses": [
+        "Generative AI refers to deep learning models that generate novel artifacts—text, images, audio, synthetic code, and 3D assets—by modeling the underlying probability distribution of training data. Leading architectures include Diffusion Models, Generative Adversarial Networks (GANs), and Auto-regressive Transformers."
+      ]
+    },
+    {
+      "tag": "llm",
+      "patterns": [
+        "what is a large language model",
+        "what is an llm",
+        "define large language models",
+        "explain large language models",
+        "how do llms work",
+        "tell me about llms",
+        "what is gpt",
+        "how are llms trained",
+        "what is pretraining and fine tuning in llms",
+        "what is prompt engineering",
+        "what is in context learning",
+        "what is hallucination in llms",
+        "what is rag",
+        "retrieval augmented generation explained",
+        "what are parameters in an llm",
+        "what does 7b or 70b parameters mean",
+        "what is context window in llms",
+        "how does next token prediction work",
+        "temperature parameter in llms",
+        "top p and top k sampling",
+        "open source llms like llama",
+        "how do language models generate text"
+      ],
+      "responses": [
+        "Large Language Models (LLMs) are massive transformer models trained on internet-scale text datasets to perform next-token prediction. By scaling parameters and compute, they develop broad reasoning, code generation, and zero-shot problem-solving skills, often augmented with Retrieval-Augmented Generation (RAG) and fine-tuning."
+      ]
+    },
+    {
+      "tag": "python",
+      "patterns": [
+        "what is python",
+        "tell me about python",
+        "why is python popular",
+        "what is python used for",
+        "explain python programming",
+        "why should I learn python",
+        "what are python libraries",
+        "describe python",
+        "is python good for ai",
+        "what can I do with python",
+        "why is python the primary language for machine learning",
+        "python data structures list tuple dict",
+        "what are list comprehensions in python",
+        "what are generators and iterators in python",
+        "what is the gil in python",
+        "python virtual environments venv",
+        "pip package manager in python",
+        "object oriented programming in python",
+        "lambda functions in python",
+        "python syntax simplicity",
+        "best practices for writing clean python",
+        "python programming overview"
+      ],
+      "responses": [
+        "Python is a high-level, dynamic programming language known for readable syntax and an extraordinary scientific ecosystem. Because of robust libraries like NumPy, Pandas, Scikit-Learn, TensorFlow, and PyTorch, Python has become the standard programming language for AI and data engineering."
+      ]
+    },
+    {
+      "tag": "tensorflow",
+      "patterns": [
+        "what is tensorflow",
+        "define tensorflow",
+        "explain tensorflow",
+        "tell me about tensorflow",
+        "how does tensorflow work",
+        "what is keras",
+        "difference between tensorflow and keras",
+        "what are tensors in tensorflow",
+        "how to build a model in keras",
+        "sequential vs functional api in keras",
+        "what is tf data",
+        "how does tensorflow optimize computation",
+        "what is tensorboard",
+        "what is tflite",
+        "tensorflow serving overview",
+        "custom loss functions in tensorflow",
+        "callbacks in keras early stopping",
+        "compiling a model in tensorflow",
+        "fit and evaluate methods in keras",
+        "google tensorflow framework",
+        "why use tensorflow for deep learning",
+        "tensorflow deep learning tutorial"
+      ],
+      "responses": [
+        "TensorFlow is an open-source deep learning framework created by Google that executes multidimensional tensor computations across CPUs, GPUs, and TPUs. Keras serves as its high-level, user-friendly API for building, compiling, fitting, and deploying neural network architectures."
+      ]
+    },
+    {
+      "tag": "pytorch",
+      "patterns": [
+        "what is pytorch",
+        "define pytorch",
+        "explain pytorch",
+        "tell me about pytorch",
+        "how does pytorch work",
+        "pytorch vs tensorflow",
+        "what is a dynamic computation graph in pytorch",
+        "what is autograd in pytorch",
+        "how to define a model in pytorch nn module",
+        "what is torch tensor",
+        "pytorch dataloader and dataset",
+        "training loop in pytorch",
+        "optimizer step and zero grad in pytorch",
+        "why do researchers prefer pytorch",
+        "pytorch lightning overview",
+        "torchvision in pytorch",
+        "cuda in pytorch for gpu acceleration",
+        "saving and loading models in pytorch",
+        "facebook meta pytorch library",
+        "loss backward in pytorch",
+        "how does backpropagation work in pytorch",
+        "pytorch deep learning framework"
+      ],
+      "responses": [
+        "PyTorch is an open-source deep learning framework developed by Meta AI. Renowned for its dynamic computational graphs (eager execution via Autograd), Pythonic syntax, and debugging transparency, it is the predominant framework for cutting-edge AI research and production deployments."
+      ]
+    },
+    {
+      "tag": "sql",
+      "patterns": [
+        "what is sql",
+        "define sql",
+        "explain sql",
+        "what is structured query language",
+        "tell me about sql",
+        "how does sql work",
+        "what is a relational database",
+        "select where group by in sql",
+        "what are sql joins",
+        "inner join vs left join",
+        "aggregate functions in sql count sum avg",
+        "what is a primary key and foreign key",
+        "what is database normalization",
+        "indexes in sql for query optimization",
+        "subqueries in sql",
+        "window functions in sql",
+        "acid properties in databases",
+        "difference between sql and nosql",
+        "why is sql essential for data science",
+        "ddl vs dml in sql",
+        "how to write an efficient sql query",
+        "sql database management basics"
+      ],
+      "responses": [
+        "SQL (Structured Query Language) is the domain-specific language used to manage, query, and manipulate relational database management systems (RDBMS). It handles structured data retrieval using clauses like SELECT, JOIN, GROUP BY, and window functions to power enterprise analytics."
+      ]
+    },
+    {
+      "tag": "dsa",
+      "patterns": [
+        "what is dsa",
+        "what are data structures and algorithms",
+        "explain data structures",
+        "tell me about algorithms",
+        "why is dsa important",
+        "what is time complexity and space complexity",
+        "explain big o notation",
+        "arrays and linked lists comparison",
+        "stacks and queues data structures",
+        "binary search algorithm",
+        "sorting algorithms quicksort mergesort",
+        "what is a binary search tree",
+        "graph algorithms bfs and dfs",
+        "what is dynamic programming",
+        "recursion in algorithms",
+        "hash tables and hashing",
+        "greedy algorithms explanation",
+        "how to practice dsa for coding interviews",
+        "leetcode and dsa problem solving",
+        "heap data structure priority queue",
+        "why software engineers study dsa",
+        "data structures and algorithms overview"
+      ],
+      "responses": [
+        "Data Structures and Algorithms (DSA) form the computational backbone of computer science. Data structures (arrays, trees, graphs, hash tables) organize data in memory, while algorithms (searching, sorting, dynamic programming) define step-by-step procedures analyzed by Big-O time and space complexity."
+      ]
+    },
+    {
+      "tag": "study_help",
+      "patterns": [
+        "how should I study",
+        "give me study tips",
+        "how to prepare for exams",
+        "study advice",
+        "how to learn programming",
+        "tips for learning ai",
+        "how to study machine learning",
+        "best way to learn deep learning",
+        "study resources for ai",
+        "how to get started with ai",
+        "how to build consistency in coding",
+        "pomodoro technique for studying",
+        "how to understand complex algorithms",
+        "how to read research papers in ai",
+        "best online courses for computer science",
+        "how to prepare for technical interviews",
+        "how to balance theory and coding practice",
+        "study schedule for computer science students",
+        "how to remember concepts without forgetting",
+        "active recall and spaced repetition for coding",
+        "how to debug code when stuck",
+        "tips for computer science students"
+      ],
+      "responses": [
+        "To excel in technical studies: 1) Build projects alongside theory, 2) Use Active Recall and Spaced Repetition for core concepts, 3) Implement algorithms from scratch before using libraries, 4) Practice deliberate problem solving in short focused sessions, and 5) Document your progress on GitHub."
+      ]
+    },
+    {
+      "tag": "college",
+      "patterns": [
+        "tell me about college",
+        "what is college life like",
+        "how is engineering college",
+        "tips for college students",
+        "advice for college",
+        "how to succeed in college",
+        "college advice",
+        "what should I do in college",
+        "how to manage college and coding",
+        "is college important",
+        "how to maintain high gpa in engineering",
+        "should I participate in college hackathons",
+        "how to balance coursework and self learning",
+        "how to get internships during college",
+        "networking with professors and alumni",
+        "college clubs and technical societies",
+        "how to make the most of engineering college",
+        "campus placements preparation",
+        "managing time in college",
+        "how to avoid burnout in college",
+        "skills college does not teach you",
+        "engineering student life advice"
+      ],
+      "responses": [
+        "Succeeding in engineering college requires strategic balance: maintain a solid GPA for academic eligibility, participate in hackathons to build collaborative skills, contribute to student developer clubs, seek research or industry internships, and build an open-source portfolio."
+      ]
+    },
+    {
+      "tag": "projects",
+      "patterns": [
+        "suggest some projects",
+        "project ideas",
+        "give me project ideas",
+        "what projects should I build",
+        "ai project ideas",
+        "machine learning project ideas",
+        "deep learning projects",
+        "beginner ai projects",
+        "final year project ideas",
+        "suggest a mini project",
+        "portfolio project suggestions",
+        "computer vision project ideas",
+        "nlp project ideas for resume",
+        "full stack ai project ideas",
+        "unique machine learning projects",
+        "end to end deep learning projects",
+        "how to pick a great capstone project",
+        "projects that will impress recruiters",
+        "speech recognition project ideas",
+        "reinforcement learning project ideas",
+        "data science capstone ideas",
+        "what can I build with python and machine learning"
+      ],
+      "responses": [
+        "High-impact project ideas: 1) End-to-end Voice Chatbot using BiLSTM or Transformers with Streamlit, 2) Real-time Object Detection and Tracking system with YOLOv8, 3) RAG-powered Document Assistant using LangChain and Vector DBs, 4) Medical Image Classification using Transfer Learning on chest X-rays, 5) Real-time Audio Emotion Recognition system."
+      ]
+    }
+  ]
+}
