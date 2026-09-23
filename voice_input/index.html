@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Voice Input Component</title>
+<title>Voice & Chat Input Component</title>
 <style>
   * {
     box-sizing: border-box;
@@ -12,32 +12,35 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
   body {
-    background: transparent;
-    color: #f8fafc;
+    background: transparent !important;
     overflow: hidden;
-    padding: 2px 4px;
+    padding: 4px;
   }
-  .voice-dock {
-    background: linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.8));
-    backdrop-filter: blur(14px);
+  .input-bar {
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(16px);
     border: 1px solid rgba(59, 130, 246, 0.35);
-    border-radius: 14px;
-    padding: 10px 16px;
+    border-radius: 28px;
+    padding: 6px 10px;
     display: flex;
     align-items: center;
-    gap: 14px;
-    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.45);
-    transition: border-color 0.3s ease;
+    gap: 8px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    transition: all 0.25s ease;
   }
-  .voice-dock.active {
+  .input-bar:focus-within, .input-bar.listening {
+    border-color: rgba(59, 130, 246, 0.7);
+    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.3);
+  }
+  .input-bar.listening {
     border-color: rgba(239, 68, 68, 0.7);
-    box-shadow: 0 0 25px -4px rgba(239, 68, 68, 0.35);
+    box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3);
   }
-  /* YouTube style pulsing mic button */
-  .mic-button {
-    position: relative;
-    width: 48px;
-    height: 48px;
+
+  /* Mic Button */
+  .mic-btn {
+    width: 44px;
+    height: 44px;
     flex-shrink: 0;
     border-radius: 50%;
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
@@ -48,57 +51,60 @@
     justify-content: center;
     color: white;
     outline: none;
-    transition: all 0.25s ease;
-    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 12px rgba(37, 99, 235, 0.4);
   }
-  .mic-button:hover {
+  .mic-btn:hover {
     transform: scale(1.06);
-    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.55);
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
   }
-  .mic-button.listening {
+  .mic-btn.listening {
     background: linear-gradient(135deg, #ef4444, #dc2626);
     animation: micPulse 1.4s infinite;
   }
   @keyframes micPulse {
     0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-    70% { box-shadow: 0 0 0 16px rgba(239, 68, 68, 0); }
+    70% { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
     100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
   }
-  .mic-icon {
-    width: 24px;
-    height: 24px;
-    fill: currentColor;
-  }
-  /* Stream / Subtitle details */
-  .stream-container {
-    display: flex;
-    flex-direction: column;
+
+  /* Text Field */
+  .input-field-wrap {
     flex-grow: 1;
-    min-width: 0;
-  }
-  .status-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #94a3b8;
+    position: relative;
+    min-width: 0;
   }
-  .status-row.active {
-    color: #f87171;
+  .chat-text-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #f8fafc;
+    font-size: 15px;
+    padding: 8px 4px;
+    line-height: 1.4;
   }
-  .status-row.success {
-    color: #34d399;
+  .chat-text-input::placeholder {
+    color: #64748b;
   }
+  .chat-text-input.recording {
+    color: #38bdf8;
+    font-weight: 500;
+  }
+
+  /* Audio Wave Indicator inside input */
   .wave-bars {
     display: none;
     align-items: center;
     gap: 3px;
-    height: 14px;
+    margin-right: 8px;
+    flex-shrink: 0;
   }
   .wave-bar {
     width: 3px;
-    height: 5px;
+    height: 6px;
     background: #ef4444;
     border-radius: 2px;
     animation: wave 0.8s ease-in-out infinite alternate;
@@ -108,60 +114,97 @@
   .wave-bar:nth-child(4) { animation-delay: 0.45s; }
   @keyframes wave {
     0% { height: 4px; }
-    100% { height: 14px; }
+    100% { height: 16px; }
   }
-  .live-subtitle {
-    font-size: 13.5px;
-    color: #38bdf8;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin-top: 3px;
-    font-style: normal;
+
+  /* Action Buttons */
+  .action-btn {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+    outline: none;
+    transition: all 0.2s ease;
   }
-  .live-subtitle.placeholder {
-    color: #64748b;
-    font-size: 12.5px;
+  .action-btn:hover {
+    color: #f8fafc;
+    background: rgba(51, 65, 85, 0.9);
+    border-color: rgba(148, 163, 184, 0.4);
   }
-  .hint-tag {
-    font-size: 11px;
-    color: #64748b;
-    background: rgba(148, 163, 184, 0.1);
-    padding: 2px 7px;
-    border-radius: 8px;
-    margin-left: auto;
-    white-space: nowrap;
+  .action-btn.stop-btn:hover {
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.15);
+  }
+  .action-btn.send-btn {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border: none;
+    color: white;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  }
+  .action-btn.send-btn:hover {
+    transform: scale(1.05);
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+  }
+  .btn-icon {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
   }
 </style>
 </head>
 <body>
 
-<div class="voice-dock" id="voiceDock">
-  <button id="micButton" class="mic-button idle" onclick="toggleListening()" title="Click to speak">
-    <svg id="svgMic" class="mic-icon" viewBox="0 0 24 24">
+<div class="input-bar" id="inputBar">
+  <!-- Mic Button -->
+  <button id="micBtn" class="mic-btn" onclick="toggleListening()" title="Click to speak (auto-sends when you pause)">
+    <svg id="svgMic" class="btn-icon" viewBox="0 0 24 24">
       <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
       <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
     </svg>
-    <svg id="svgStop" class="mic-icon" viewBox="0 0 24 24" style="display: none;">
+    <svg id="svgStopMic" class="btn-icon" viewBox="0 0 24 24" style="display: none;">
       <rect x="6" y="6" width="12" height="12" rx="2"/>
     </svg>
   </button>
 
-  <div class="stream-container">
-    <div class="status-row" id="statusRow">
-      <span id="statusMessage">Tap mic to speak</span>
-      <div id="waveBars" class="wave-bars">
-        <div class="wave-bar"></div>
-        <div class="wave-bar"></div>
-        <div class="wave-bar"></div>
-        <div class="wave-bar"></div>
-      </div>
-      <span class="hint-tag">YouTube-style auto-reply</span>
+  <!-- Input Field & Live Subtitles -->
+  <div class="input-field-wrap">
+    <div id="waveBars" class="wave-bars">
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
     </div>
-    <div class="live-subtitle placeholder" id="liveText">
-      Speak naturally — answers automatically when you pause
-    </div>
+    <input
+      type="text"
+      id="chatInput"
+      class="chat-text-input"
+      placeholder="Type a question or tap the mic to speak..."
+      autocomplete="off"
+    />
   </div>
+
+  <!-- Stop Speech Button -->
+  <button class="action-btn stop-btn" onclick="stopBotSpeech()" title="Stop Voice Speech">
+    <svg class="btn-icon" viewBox="0 0 24 24">
+      <!-- Speaker muted / stop icon -->
+      <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+    </svg>
+  </button>
+
+  <!-- Send Button -->
+  <button class="action-btn send-btn" onclick="submitTextInput()" title="Send">
+    <svg class="btn-icon" viewBox="0 0 24 24">
+      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+    </svg>
+  </button>
 </div>
 
 <script>
@@ -171,7 +214,7 @@
   let finalAccumulatedText = "";
   let isHandshakeComplete = false;
   const SILENCE_TIMEOUT_MS = 1300;
-  const COMPONENT_HEIGHT = 86;
+  const COMPONENT_HEIGHT = 64;
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -218,6 +261,45 @@
     }
   });
 
+  // Stop bot's speech immediately
+  function stopBotSpeech() {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    try {
+      if (window.parent && 'speechSynthesis' in window.parent) {
+        window.parent.speechSynthesis.cancel();
+      }
+    } catch (e) {}
+
+    // Visual feedback on button
+    const stopBtn = document.querySelector('.stop-btn');
+    stopBtn.style.color = '#ef4444';
+    setTimeout(() => { stopBtn.style.color = ''; }, 600);
+  }
+
+  // Submit typed text
+  function submitTextInput() {
+    const input = document.getElementById("chatInput");
+    const text = input.value.trim();
+    if (text) {
+      sendToStreamlit({
+        text: text,
+        ts: Date.now()
+      });
+      input.value = "";
+    }
+  }
+
+  // Handle Enter key on input
+  document.getElementById("chatInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitTextInput();
+    }
+  });
+
+  // Speech Recognition setup
   if (SpeechRecognition) {
     recognition = new SpeechRecognition();
     recognition.continuous = true;
@@ -227,15 +309,15 @@
     recognition.onstart = () => {
       isListening = true;
       finalAccumulatedText = "";
-      document.getElementById("voiceDock").className = "voice-dock active";
-      document.getElementById("micButton").className = "mic-button listening";
+      document.getElementById("inputBar").className = "input-bar listening";
+      document.getElementById("micBtn").className = "mic-btn listening";
       document.getElementById("svgMic").style.display = "none";
-      document.getElementById("svgStop").style.display = "block";
-      document.getElementById("statusMessage").innerText = "Listening...";
-      document.getElementById("statusRow").className = "status-row active";
+      document.getElementById("svgStopMic").style.display = "block";
       document.getElementById("waveBars").style.display = "flex";
-      document.getElementById("liveText").className = "live-subtitle";
-      document.getElementById("liveText").innerText = "";
+      const input = document.getElementById("chatInput");
+      input.className = "chat-text-input recording";
+      input.placeholder = "Listening... Speak naturally";
+      input.value = "";
     };
 
     recognition.onresult = (event) => {
@@ -250,9 +332,10 @@
 
       const currentLive = (finalAccumulatedText + interim).trim();
       if (currentLive) {
-        document.getElementById("liveText").innerText = '"' + currentLive + '"';
+        document.getElementById("chatInput").value = currentLive;
       }
 
+      // Auto-send when speaking finishes
       clearTimeout(silenceTimer);
       silenceTimer = setTimeout(() => {
         if (isListening && currentLive.length > 1) {
@@ -263,15 +346,12 @@
 
     recognition.onerror = (event) => {
       console.warn("Speech recognition notice:", event.error);
-      if (event.error !== "no-speech") {
-        document.getElementById("statusMessage").innerText = "Notice: " + event.error;
-      }
       resetUi();
     };
 
     recognition.onend = () => {
       if (isListening) {
-        const text = finalAccumulatedText.trim();
+        const text = finalAccumulatedText.trim() || document.getElementById("chatInput").value.trim();
         if (text) {
           finishAndSubmit();
         } else {
@@ -286,6 +366,9 @@
       alert("Web Speech API is not supported in this browser. Please use Chrome or Edge.");
       return;
     }
+    // Clicking mic also cancels any active TTS speech so bot doesn't speak over you!
+    stopBotSpeech();
+
     if (isListening) {
       finishAndSubmit();
     } else {
@@ -304,21 +387,16 @@
       try { recognition.stop(); } catch (e) {}
     }
 
-    const recognizedText = finalAccumulatedText.trim() || document.getElementById("liveText").innerText.replace(/^"|"$/g, "").trim();
+    const input = document.getElementById("chatInput");
+    const recognizedText = finalAccumulatedText.trim() || input.value.trim();
 
-    if (recognizedText && recognizedText !== "Speak naturally — answers automatically when you pause") {
-      document.getElementById("statusMessage").innerText = "Delivering answer...";
-      document.getElementById("statusRow").className = "status-row success";
-      document.getElementById("waveBars").style.display = "none";
-      document.getElementById("micButton").className = "mic-button";
-      document.getElementById("svgMic").style.display = "block";
-      document.getElementById("svgStop").style.display = "none";
-
+    if (recognizedText) {
+      input.placeholder = "Delivering answer...";
+      input.value = "";
       sendToStreamlit({
         text: recognizedText,
         ts: Date.now()
       });
-
       setTimeout(resetUi, 2500);
     } else {
       resetUi();
@@ -328,15 +406,14 @@
   function resetUi() {
     isListening = false;
     clearTimeout(silenceTimer);
-    document.getElementById("voiceDock").className = "voice-dock";
-    document.getElementById("micButton").className = "mic-button";
+    document.getElementById("inputBar").className = "input-bar";
+    document.getElementById("micBtn").className = "mic-btn";
     document.getElementById("svgMic").style.display = "block";
-    document.getElementById("svgStop").style.display = "none";
-    document.getElementById("statusMessage").innerText = "Tap mic to speak";
-    document.getElementById("statusRow").className = "status-row";
+    document.getElementById("svgStopMic").style.display = "none";
     document.getElementById("waveBars").style.display = "none";
-    document.getElementById("liveText").className = "live-subtitle placeholder";
-    document.getElementById("liveText").innerText = "Speak naturally — answers automatically when you pause";
+    const input = document.getElementById("chatInput");
+    input.className = "chat-text-input";
+    input.placeholder = "Type a question or tap the mic to speak...";
   }
 </script>
 

@@ -131,6 +131,17 @@ st.markdown("""
         padding: 12px 14px;
         margin-bottom: 12px;
     }
+
+    /* Remove Streamlit default black bottom container & footer */
+    [data-testid="stBottom"], [data-testid="stBottom"] > div, footer, header[data-testid="stHeader"] {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    footer {
+        display: none !important;
+        visibility: hidden !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -578,32 +589,21 @@ else:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
             if msg["role"] == "assistant":
-                meta_cols = st.columns([1, 1, 3])
-                engine_name = msg.get("engine", "BiLSTM")
-                intent_name = msg.get("intent", "")
-                conf_val = msg.get("confidence", 1.0)
-
-                with meta_cols[0]:
-                    if "Rollback" in engine_name:
-                        st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
-                    elif "BiLSTM" in engine_name:
-                        st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"<span class='badge-llm'>⚡ {engine_name}</span>", unsafe_allow_html=True)
-
-                with meta_cols[1]:
-                    if intent_name and "BiLSTM" in engine_name:
-                        st.caption(f"Intent: `{intent_name}` ({conf_val*100:.1f}%)")
+                engine_name = msg.get("engine", "")
+                if "Rollback" in engine_name:
+                    st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
+                elif "BiLSTM" in engine_name and force_bilstm:
+                    st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────
-# BOTTOM VOICE & TEXT INPUT DOCK
+# UNIFIED BOTTOM DOCK (MIC + TEXT INPUT + STOP BUTTON)
 # ─────────────────────────────────────────────────────────
 
-# Render the compact YouTube-style voice widget right above the text input
-spoken_data = voice_input_widget(key="youtube_mic_widget")
+# Render the unified bottom bar containing the Mic, Text input, and Stop button
+spoken_data = voice_input_widget(key="unified_input_bar")
 
-# Process speech automatically as soon as user stops speaking
+# Process submitted query (from either voice recognition or typed text)
 if spoken_data:
     if isinstance(spoken_data, dict):
         user_query = str(spoken_data.get("text", "")).strip()
@@ -631,29 +631,6 @@ if spoken_data:
             st.session_state.speech_to_speak = agent_data["reply"]
 
         st.rerun()
-
-# Text input fallback directly below the voice mic
-typed_input = st.chat_input("Type your question here (or tap the microphone above)...")
-
-if typed_input:
-    user_query = typed_input.strip()
-    st.session_state.messages.append({"role": "user", "content": user_query})
-
-    with st.spinner("Thinking..."):
-        agent_data = get_agent_response(user_query, force_local=force_bilstm)
-
-    st.session_state.messages.append({
-        "role": "assistant",
-        "content": agent_data["reply"],
-        "engine": agent_data.get("engine", "BiLSTM"),
-        "intent": agent_data.get("intent", ""),
-        "confidence": agent_data.get("confidence", 1.0),
-    })
-
-    if st.session_state.auto_tts:
-        st.session_state.speech_to_speak = agent_data["reply"]
-
-    st.rerun()
 
 
 # ─────────────────────────────────────────────────────────
@@ -702,11 +679,3 @@ if st.session_state.speech_to_speak and st.session_state.auto_tts:
     </script>
     """
     st.components.v1.html(tts_js, height=0)
-
-
-# ─────────────────────────────────────────────────────────
-# FOOTER
-# ─────────────────────────────────────────────────────────
-
-st.markdown("---")
-st.caption("🎙️ VoiceBot AI • YouTube-Style Voice Flow • BiLSTM Deep Learning + Gemini 2.5 Flash • Web Speech Recognition & Synthesis")
