@@ -14,27 +14,41 @@
   body {
     background: transparent !important;
     overflow: hidden;
-    padding: 4px;
+    padding: 3px 6px;
   }
   .input-bar {
-    background: rgba(15, 23, 42, 0.85);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(59, 130, 246, 0.35);
-    border-radius: 28px;
-    padding: 6px 10px;
+    position: relative;
+    background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 32px;
+    padding: 5px 8px 5px 6px;
     display: flex;
     align-items: center;
-    gap: 8px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
-    transition: all 0.25s ease;
+    gap: 10px;
+    box-shadow: 
+      0 12px 32px -4px rgba(0, 0, 0, 0.65),
+      0 0 0 1px rgba(255, 255, 255, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.18),
+      0 0 24px rgba(59, 130, 246, 0.16);
+    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .input-bar:focus-within, .input-bar.listening {
-    border-color: rgba(59, 130, 246, 0.7);
-    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.3);
+  .input-bar:focus-within {
+    border-color: rgba(96, 165, 250, 0.6);
+    box-shadow: 
+      0 14px 40px -4px rgba(0, 0, 0, 0.75),
+      0 0 0 1px rgba(96, 165, 250, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      0 0 32px rgba(59, 130, 246, 0.28);
   }
   .input-bar.listening {
     border-color: rgba(239, 68, 68, 0.7);
-    box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3);
+    box-shadow: 
+      0 14px 40px -4px rgba(0, 0, 0, 0.75),
+      0 0 0 1px rgba(239, 68, 68, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25),
+      0 0 32px rgba(239, 68, 68, 0.35);
   }
 
   /* Mic Button */
@@ -43,7 +57,7 @@
     height: 44px;
     flex-shrink: 0;
     border-radius: 50%;
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%);
     border: none;
     cursor: pointer;
     display: flex;
@@ -51,21 +65,22 @@
     justify-content: center;
     color: white;
     outline: none;
-    transition: all 0.2s ease;
-    box-shadow: 0 3px 12px rgba(37, 99, 235, 0.4);
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.4);
   }
   .mic-btn:hover {
     transform: scale(1.06);
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.5);
   }
   .mic-btn.listening {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, #f43f5e 0%, #ef4444 60%, #dc2626 100%);
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
     animation: micPulse 1.4s infinite;
   }
   @keyframes micPulse {
-    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-    70% { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.4); }
+    70% { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0), inset 0 1px 1px rgba(255, 255, 255, 0.4); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0), inset 0 1px 1px rgba(255, 255, 255, 0.4); }
   }
 
   /* Text Field */
@@ -83,11 +98,15 @@
     outline: none;
     color: #f8fafc;
     font-size: 15px;
-    padding: 8px 4px;
+    font-weight: 450;
+    padding: 8px 6px;
     line-height: 1.4;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
   }
   .chat-text-input::placeholder {
-    color: #64748b;
+    color: #94a3b8;
+    font-weight: 400;
   }
   .chat-text-input.recording {
     color: #38bdf8;
@@ -99,59 +118,64 @@
     display: none;
     align-items: center;
     gap: 3px;
-    margin-right: 8px;
+    margin-right: 10px;
     flex-shrink: 0;
   }
   .wave-bar {
     width: 3px;
-    height: 6px;
-    background: #ef4444;
-    border-radius: 2px;
+    height: 8px;
+    background: linear-gradient(180deg, #f43f5e, #ef4444);
+    border-radius: 3px;
     animation: wave 0.8s ease-in-out infinite alternate;
   }
   .wave-bar:nth-child(2) { animation-delay: 0.15s; }
   .wave-bar:nth-child(3) { animation-delay: 0.3s; }
   .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+  .wave-bar:nth-child(5) { animation-delay: 0.6s; }
   @keyframes wave {
     0% { height: 4px; }
-    100% { height: 16px; }
+    100% { height: 18px; }
   }
 
   /* Action Buttons */
   .action-btn {
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
     flex-shrink: 0;
     border-radius: 50%;
-    background: rgba(30, 41, 59, 0.8);
-    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     color: #94a3b8;
     outline: none;
-    transition: all 0.2s ease;
+    transition: all 0.22s ease;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
   .action-btn:hover {
     color: #f8fafc;
-    background: rgba(51, 65, 85, 0.9);
-    border-color: rgba(148, 163, 184, 0.4);
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.04);
   }
   .action-btn.stop-btn:hover {
     color: #f87171;
-    border-color: rgba(239, 68, 68, 0.4);
-    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.18);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
   }
   .action-btn.send-btn {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     border: none;
     color: white;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.35);
   }
   .action-btn.send-btn:hover {
-    transform: scale(1.05);
-    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    transform: scale(1.06);
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.45);
+    background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
   }
   .btn-icon {
     width: 20px;
@@ -181,12 +205,13 @@
       <div class="wave-bar"></div>
       <div class="wave-bar"></div>
       <div class="wave-bar"></div>
+      <div class="wave-bar"></div>
     </div>
     <input
       type="text"
       id="chatInput"
       class="chat-text-input"
-      placeholder="Type a question or tap the mic to speak..."
+      placeholder="Type a message or tap mic to speak..."
       autocomplete="off"
     />
   </div>

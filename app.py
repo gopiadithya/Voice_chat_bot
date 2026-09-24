@@ -738,19 +738,57 @@ st.markdown("""
         }
     }
 
+    var lastScrollTime = 0;
+    function scrollChatToBottom(force) {
+        var now = Date.now();
+        if (!force && (now - lastScrollTime < 50)) return;
+        lastScrollTime = now;
+
+        var scrollingEl = document.scrollingElement || document.documentElement || document.body;
+        var mainSec = document.querySelector('section.main') || document.querySelector('.stMain');
+
+        window.scrollTo({
+            top: scrollingEl.scrollHeight,
+            behavior: 'smooth'
+        });
+        if (mainSec) {
+            mainSec.scrollTo({
+                top: mainSec.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }
+
     pinBottomDock();
     positionClearBtn();
     syncTheme();
-    var observer = new MutationObserver(function() {
+
+    var observer = new MutationObserver(function(mutations) {
         pinBottomDock();
         positionClearBtn();
         syncTheme();
+
+        var hasTextStream = mutations.some(function(m) {
+            return m.type === 'characterData' ||
+                   (m.target && m.target.closest && m.target.closest('[data-testid="stChatMessage"]'));
+        });
+        if (hasTextStream) {
+            scrollChatToBottom(false);
+        }
     });
-    observer.observe(document.documentElement, { attributes: true, subtree: true, childList: true });
+
+    observer.observe(document.documentElement, {
+        attributes: true,
+        subtree: true,
+        childList: true,
+        characterData: true
+    });
+
     window.addEventListener('resize', function() {
         pinBottomDock();
         syncTheme();
     });
+
     setInterval(function() {
         pinBottomDock();
         positionClearBtn();
@@ -1353,6 +1391,9 @@ if spoken_data:
             with st.chat_message("user"):
                 st.markdown(user_query)
 
+            # Auto-scroll up to display the newly posted question
+            st.components.v1.html("<script>try{window.parent.scrollTo({top: window.parent.document.body.scrollHeight, behavior: 'smooth'});}catch(e){}</script>", height=0)
+
             # Render assistant message with dynamic live caption streaming!
             with st.chat_message("assistant"):
                 with st.spinner("Thinking..."):
@@ -1364,11 +1405,11 @@ if spoken_data:
                 if st.session_state.auto_tts:
                     trigger_browser_tts(reply_text)
 
-                # Live caption streaming generator: parallelized to voice speech timing
+                # Live caption streaming generator: parallelized to voice speech timing (~142 WPM)
                 def stream_live_captions():
                     if st.session_state.auto_tts:
-                        # Synchronize with Web Speech API audio initialization
-                        time.sleep(0.38)
+                        # Synchronize with Web Speech API audio initialization buffer
+                        time.sleep(0.65)
 
                     tokens = re.split(r'(\s+)', reply_text)
                     for token in tokens:
@@ -1376,13 +1417,13 @@ if spoken_data:
                             yield token
                             if not token.isspace():
                                 if st.session_state.auto_tts:
-                                    # Paced in direct parallel to vocal delivery (~170 WPM)
+                                    # Paced in parallel to spoken vocal delivery
                                     word_clean = token.strip()
-                                    delay = 0.15 + (len(word_clean) * 0.016)
-                                    if word_clean.endswith((',', ';', ':')):
-                                        delay += 0.16
-                                    elif word_clean.endswith(('.', '!', '?')):
+                                    delay = 0.28 + (len(word_clean) * 0.022)
+                                    if word_clean.endswith((',', ';', ':', '—', '-')):
                                         delay += 0.28
+                                    elif word_clean.endswith(('.', '!', '?')):
+                                        delay += 0.46
                                     time.sleep(delay)
                                 else:
                                     time.sleep(0.02)
@@ -1394,6 +1435,9 @@ if spoken_data:
                     st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
                 elif "BiLSTM" in engine_name and force_bilstm:
                     st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
+
+            # Auto-scroll down to ensure complete reply is in full view above the dock
+            st.components.v1.html("<script>try{window.parent.scrollTo({top: window.parent.document.body.scrollHeight, behavior: 'smooth'});}catch(e){}</script>", height=0)
 
         # Save to session state
         st.session_state.messages.append({"role": "user", "content": user_query})
