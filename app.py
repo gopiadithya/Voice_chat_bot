@@ -37,7 +37,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom styling with vibrant animated background and glowing cyber orbs
+# Custom styling with vibrant animated background, cosmic meteors, and glowing cyber orbs
 st.markdown("""
 <style>
     /* Full App Deep Canvas */
@@ -69,32 +69,32 @@ st.markdown("""
         animation-direction: alternate;
     }
     .orb-1 {
-        width: 520px;
-        height: 520px;
+        width: 540px;
+        height: 540px;
         background: radial-gradient(circle, #2563eb 0%, #1e40af 60%, transparent 100%);
         top: -12%;
         left: -10%;
         animation: floatOrb1 14s infinite alternate;
     }
     .orb-2 {
-        width: 560px;
-        height: 560px;
+        width: 580px;
+        height: 580px;
         background: radial-gradient(circle, #8b5cf6 0%, #6d28d9 60%, transparent 100%);
         top: 20%;
         right: -15%;
         animation: floatOrb2 17s infinite alternate;
     }
     .orb-3 {
-        width: 480px;
-        height: 480px;
+        width: 500px;
+        height: 500px;
         background: radial-gradient(circle, #06b6d4 0%, #0e7490 60%, transparent 100%);
         bottom: -10%;
         left: 10%;
         animation: floatOrb3 15s infinite alternate;
     }
     .orb-4 {
-        width: 420px;
-        height: 420px;
+        width: 440px;
+        height: 440px;
         background: radial-gradient(circle, #ec4899 0%, #a21caf 60%, transparent 100%);
         top: 48%;
         left: 38%;
@@ -102,8 +102,8 @@ st.markdown("""
         animation: floatOrb4 20s infinite alternate;
     }
     .orb-5 {
-        width: 450px;
-        height: 450px;
+        width: 470px;
+        height: 470px;
         background: radial-gradient(circle, #10b981 0%, #047857 60%, transparent 100%);
         bottom: 5%;
         right: 12%;
@@ -137,6 +137,134 @@ st.markdown("""
         100% { transform: translate(60px, -70px) scale(0.88); }
     }
 
+    /* Aurora Bioluminescent Ribbons */
+    .aurora-ribbon {
+        position: absolute;
+        width: 130vw;
+        height: 340px;
+        left: -15vw;
+        filter: blur(85px);
+        opacity: 0.28;
+        pointer-events: none;
+        border-radius: 50%;
+    }
+    .aurora-1 {
+        top: -80px;
+        background: radial-gradient(ellipse at 50% 50%, #38bdf8 0%, #06b6d4 40%, transparent 70%);
+        animation: auroraWave1 22s ease-in-out infinite alternate;
+    }
+    .aurora-2 {
+        top: 32%;
+        background: radial-gradient(ellipse at 50% 50%, #8b5cf6 0%, #ec4899 40%, transparent 70%);
+        animation: auroraWave2 26s ease-in-out infinite alternate;
+        opacity: 0.20;
+    }
+    @keyframes auroraWave1 {
+        0% { transform: translateY(0px) rotate(0deg) scaleY(1); }
+        50% { transform: translateY(50px) rotate(3deg) scaleY(1.2); }
+        100% { transform: translateY(-30px) rotate(-2deg) scaleY(0.92); }
+    }
+    @keyframes auroraWave2 {
+        0% { transform: translateY(0px) rotate(0deg) scaleX(1); }
+        50% { transform: translateY(-60px) rotate(-4deg) scaleX(1.15); }
+        100% { transform: translateY(40px) rotate(2deg) scaleX(0.95); }
+    }
+
+    /* Rotating Cyber Constellation Rings */
+    .cyber-ring {
+        position: absolute;
+        border-radius: 50%;
+        border: 1px dashed rgba(96, 165, 250, 0.14);
+        pointer-events: none;
+        animation: spinRing 45s linear infinite;
+    }
+    .ring-1 {
+        width: 700px;
+        height: 700px;
+        top: -180px;
+        right: -160px;
+    }
+    .ring-2 {
+        width: 480px;
+        height: 480px;
+        bottom: 8%;
+        left: -120px;
+        border-color: rgba(192, 132, 252, 0.12);
+        animation-duration: 55s;
+        animation-direction: reverse;
+    }
+    @keyframes spinRing {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    /* Diagonal Cosmic Shooting Stars */
+    .shooting-star {
+        position: absolute;
+        height: 2px;
+        background: linear-gradient(-45deg, #38bdf8, rgba(56, 189, 248, 0));
+        filter: drop-shadow(0 0 6px #38bdf8);
+        animation: meteorAnimation 11s ease-in-out infinite;
+        opacity: 0;
+    }
+    .star-1 {
+        top: 14%;
+        right: 12%;
+        width: 140px;
+        animation-delay: 2s;
+    }
+    .star-2 {
+        top: 36%;
+        right: 26%;
+        width: 180px;
+        animation-delay: 6.5s;
+        background: linear-gradient(-45deg, #c084fc, rgba(192, 132, 252, 0));
+        filter: drop-shadow(0 0 6px #c084fc);
+    }
+    .star-3 {
+        top: 60%;
+        right: 18%;
+        width: 120px;
+        animation-delay: 10s;
+        background: linear-gradient(-45deg, #34d399, rgba(52, 211, 153, 0));
+        filter: drop-shadow(0 0 6px #34d399);
+    }
+    @keyframes meteorAnimation {
+        0% {
+            transform: rotate(-35deg) translateX(0);
+            opacity: 0;
+        }
+        5% {
+            opacity: 1;
+        }
+        14% {
+            transform: rotate(-35deg) translateX(-680px);
+            opacity: 0;
+        }
+        100% {
+            transform: rotate(-35deg) translateX(-680px);
+            opacity: 0;
+        }
+    }
+
+    /* Ambient Holographic Vertical Light Scan */
+    .holographic-beam {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 140px;
+        background: linear-gradient(180deg, transparent 0%, rgba(56, 189, 248, 0.035) 50%, transparent 100%);
+        animation: beamScan 14s ease-in-out infinite;
+        pointer-events: none;
+    }
+    @keyframes beamScan {
+        0% { transform: translateY(-150px); opacity: 0; }
+        20% { opacity: 1; }
+        80% { opacity: 1; }
+        100% { transform: translateY(110vh); opacity: 0; }
+    }
+
     /* Cyber grid overlay */
     .cyber-grid {
         position: absolute;
@@ -152,25 +280,24 @@ st.markdown("""
     /* Floating glowing star particles */
     .particle {
         position: absolute;
-        width: 4px;
-        height: 4px;
-        background: #38bdf8;
         border-radius: 50%;
-        box-shadow: 0 0 14px 3px #38bdf8;
-        opacity: 0.75;
-        animation: floatParticle 8s infinite ease-in-out alternate;
+        animation: floatParticle 9s infinite ease-in-out alternate;
     }
-    .p1 { top: 18%; left: 14%; animation-duration: 9s; }
-    .p2 { top: 32%; right: 18%; animation-duration: 11s; background: #c084fc; box-shadow: 0 0 14px 3px #c084fc; }
-    .p3 { top: 62%; left: 22%; animation-duration: 13s; background: #34d399; box-shadow: 0 0 14px 3px #34d399; }
-    .p4 { top: 78%; right: 28%; animation-duration: 10s; }
-    .p5 { top: 12%; right: 32%; animation-duration: 14s; background: #f472b6; box-shadow: 0 0 14px 3px #f472b6; }
-    .p6 { top: 48%; left: 8%; animation-duration: 12s; }
+    .p1 { width: 4px; height: 4px; top: 16%; left: 12%; background: #38bdf8; box-shadow: 0 0 14px 3px #38bdf8; animation-duration: 9s; }
+    .p2 { width: 5px; height: 5px; top: 32%; right: 16%; background: #c084fc; box-shadow: 0 0 15px 3px #c084fc; animation-duration: 11s; }
+    .p3 { width: 4px; height: 4px; top: 62%; left: 20%; background: #34d399; box-shadow: 0 0 14px 3px #34d399; animation-duration: 13s; }
+    .p4 { width: 3px; height: 3px; top: 78%; right: 24%; background: #38bdf8; box-shadow: 0 0 12px 2px #38bdf8; animation-duration: 10s; }
+    .p5 { width: 5px; height: 5px; top: 12%; right: 30%; background: #f472b6; box-shadow: 0 0 16px 3px #f472b6; animation-duration: 14s; }
+    .p6 { width: 3px; height: 3px; top: 48%; left: 8%; background: #38bdf8; box-shadow: 0 0 12px 2px #38bdf8; animation-duration: 12s; }
+    .p7 { width: 4px; height: 4px; top: 84%; left: 45%; background: #facc15; box-shadow: 0 0 14px 3px #facc15; animation-duration: 15s; }
+    .p8 { width: 3px; height: 3px; top: 25%; left: 55%; background: #60a5fa; box-shadow: 0 0 12px 2px #60a5fa; animation-duration: 10s; }
+    .p9 { width: 4px; height: 4px; top: 70%; right: 40%; background: #c084fc; box-shadow: 0 0 14px 3px #c084fc; animation-duration: 12s; }
+    .p10 { width: 3px; height: 3px; top: 92%; left: 16%; background: #34d399; box-shadow: 0 0 12px 2px #34d399; animation-duration: 13s; }
 
     @keyframes floatParticle {
-        0% { transform: translateY(0px) translateX(0px); opacity: 0.35; }
-        50% { transform: translateY(-45px) translateX(25px); opacity: 0.95; }
-        100% { transform: translateY(15px) translateX(-20px); opacity: 0.45; }
+        0% { transform: translateY(0px) translateX(0px); opacity: 0.3; }
+        50% { transform: translateY(-40px) translateX(25px); opacity: 0.95; }
+        100% { transform: translateY(15px) translateX(-20px); opacity: 0.4; }
     }
 
     /* Main container bounds */
@@ -233,12 +360,66 @@ st.markdown("""
         font-weight: 600;
         display: inline-block;
     }
-    .status-card {
-        background: rgba(30, 41, 59, 0.6);
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        border-radius: 12px;
-        padding: 12px 14px;
-        margin-bottom: 12px;
+
+    /* ─── SIDEBAR MODERN GLASSMORPHISM & PINNED BOTTOM ─── */
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, rgba(8, 14, 28, 0.96) 0%, rgba(3, 7, 18, 0.98) 100%) !important;
+        backdrop-filter: blur(24px) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: calc(100vh - 4.5rem) !important;
+        padding-bottom: 1.2rem !important;
+    }
+
+    /* Spacer pushing bottom items to the bottom corner */
+    .sidebar-spacer {
+        flex-grow: 1 !important;
+        min-height: 40px !important;
+    }
+
+    /* Expander card in sidebar */
+    section[data-testid="stSidebar"] [data-testid="stExpander"] {
+        background: rgba(15, 23, 42, 0.55) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 14px !important;
+        overflow: hidden !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stExpander"]:hover {
+        border-color: rgba(96, 165, 250, 0.35) !important;
+    }
+
+    /* Clear Chat Button anchored in the bottom-left corner */
+    .sidebar-bottom-action {
+        margin-top: auto !important;
+        padding-top: 14px !important;
+        border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    }
+
+    section[data-testid="stSidebar"] div.stButton button {
+        background: rgba(239, 68, 68, 0.1) !important;
+        border: 1px solid rgba(239, 68, 68, 0.28) !important;
+        color: #fca5a5 !important;
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        font-size: 0.88rem !important;
+        padding: 10px 16px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        text-align: left !important;
+        gap: 8px !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    section[data-testid="stSidebar"] div.stButton button:hover {
+        background: rgba(239, 68, 68, 0.22) !important;
+        border-color: rgba(239, 68, 68, 0.6) !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 18px rgba(239, 68, 68, 0.35) !important;
+        transform: translateY(-1px) !important;
     }
 
     /* Remove Streamlit default black bottom container & footer */
@@ -253,13 +434,21 @@ st.markdown("""
     }
 </style>
 
-<!-- Animated Background Canvas Elements -->
+<!-- Animated Background Canvas Elements (Orbs, Aurora, Meteors, Rings, Particles) -->
 <div class="animated-bg-container">
+    <div class="aurora-ribbon aurora-1"></div>
+    <div class="aurora-ribbon aurora-2"></div>
     <div class="orb orb-1"></div>
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
     <div class="orb orb-4"></div>
     <div class="orb orb-5"></div>
+    <div class="cyber-ring ring-1"></div>
+    <div class="cyber-ring ring-2"></div>
+    <div class="shooting-star star-1"></div>
+    <div class="shooting-star star-2"></div>
+    <div class="shooting-star star-3"></div>
+    <div class="holographic-beam"></div>
     <div class="cyber-grid"></div>
     <div class="particle p1"></div>
     <div class="particle p2"></div>
@@ -267,6 +456,10 @@ st.markdown("""
     <div class="particle p4"></div>
     <div class="particle p5"></div>
     <div class="particle p6"></div>
+    <div class="particle p7"></div>
+    <div class="particle p8"></div>
+    <div class="particle p9"></div>
+    <div class="particle p10"></div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -631,7 +824,18 @@ def get_agent_response(user_text: str, force_local: bool = False):
 # ─────────────────────────────────────────────────────────
 
 with st.sidebar:
-    st.header("⚙️ System Status")
+    # Futuristic Glowing Header
+    st.markdown("""
+    <div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: rgba(15, 23, 42, 0.65); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);">
+        <div style="width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, #2563eb, #8b5cf6); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; box-shadow: 0 0 14px rgba(59, 130, 246, 0.45); flex-shrink: 0;">
+            ⚡
+        </div>
+        <div>
+            <div style="font-weight: 700; font-size: 1.05rem; color: #f8fafc; letter-spacing: -0.01em;">Neural Engine</div>
+            <div style="font-size: 0.72rem; color: #94a3b8; letter-spacing: 0.04em; text-transform: uppercase;">System Architecture</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     gemini_k = get_secret("GEMINI_API_KEY")
     groq_k = get_secret("GROQ_API_KEY")
@@ -639,20 +843,40 @@ with st.sidebar:
     has_api = bool(gemini_k or groq_k or openai_k)
 
     if has_api:
-        api_name = "Gemini 2.5 Flash" if gemini_k else ("Groq Llama 3.3" if groq_k else "OpenAI")
+        if groq_k:
+            api_name = "Groq (GPT-OSS-120B / Fast)"
+        elif gemini_k:
+            api_name = "Gemini 2.5 Flash"
+        else:
+            api_name = "OpenAI GPT-4o-mini"
+
         st.markdown(f"""
-        <div class="status-card">
-            <span style="color: #34d399; font-weight: 700;">🟢 Active Engine:</span><br>
-            <span style="font-size: 0.9rem; color: #f1f5f9;">Cloud AI ({api_name})</span><br>
-            <span style="color: #60a5fa; font-size: 0.8rem;">🛡️ Auto-Rollback: <b>BiLSTM Ready</b></span>
+        <div style="background: rgba(15, 23, 42, 0.72); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35); backdrop-filter: blur(14px);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 0.72rem; font-weight: 700; color: #38bdf8; letter-spacing: 0.06em; text-transform: uppercase;">ACTIVE ENGINE</span>
+                <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; color: #4ade80; background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.3); padding: 2px 8px; border-radius: 20px;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 6px #22c55e;"></span>
+                    Online
+                </span>
+            </div>
+            <div style="font-size: 0.95rem; font-weight: 700; color: #f1f5f9; margin-bottom: 6px;">{api_name}</div>
+            <div style="font-size: 0.78rem; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+                <span>🛡️</span>
+                <span>Auto-Rollback: <b style="color: #60a5fa;">BiLSTM Ready</b></span>
+            </div>
         </div>
         """, unsafe_allow_html=True)
     else:
         st.markdown("""
-        <div class="status-card">
-            <span style="color: #60a5fa; font-weight: 700;">🧠 Active Engine:</span><br>
-            <span style="font-size: 0.9rem; color: #f1f5f9;">Local BiLSTM Neural Network</span><br>
-            <span style="color: #94a3b8; font-size: 0.8rem;">Self-contained offline model</span>
+        <div style="background: rgba(15, 23, 42, 0.72); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35); backdrop-filter: blur(14px);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 0.72rem; font-weight: 700; color: #60a5fa; letter-spacing: 0.06em; text-transform: uppercase;">ACTIVE ENGINE</span>
+                <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; color: #60a5fa; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); padding: 2px 8px; border-radius: 20px;">
+                    Local Mode
+                </span>
+            </div>
+            <div style="font-size: 0.95rem; font-weight: 700; color: #f1f5f9; margin-bottom: 6px;">BiLSTM Deep Neural Net</div>
+            <div style="font-size: 0.78rem; color: #94a3b8;">Self-contained offline model</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -668,27 +892,51 @@ with st.sidebar:
         help="When enabled, the browser will automatically speak the chatbot's answers aloud."
     )
 
-    st.divider()
+    st.markdown("<div style='margin: 12px 0;'></div>", unsafe_allow_html=True)
 
     with st.expander("📊 Lab Model Specifications"):
         st.markdown("""
-        - **Architecture:** Bidirectional LSTM
-        - **Intents:** 28 Categories
-        - **Dataset V2:** 616 Utterances
-        - **Held-out Test Acc:** **60.22%**
-        - **Random Baseline:** 3.57% (1/28)
-        - **Voice Engine:** Web Speech API (Auto-Silence)
-        """)
+        <div style="font-size: 0.82rem; color: #cbd5e1; line-height: 1.8;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 5px 0;">
+                <span style="color: #94a3b8;">Architecture</span>
+                <span style="font-weight: 600; color: #60a5fa;">BiLSTM Neural Net</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 5px 0;">
+                <span style="color: #94a3b8;">Intent Classes</span>
+                <span style="font-weight: 600; color: #38bdf8;">28 Categories</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 5px 0;">
+                <span style="color: #94a3b8;">Training Corpus</span>
+                <span style="font-weight: 600; color: #f1f5f9;">616 Utterances V2</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 5px 0;">
+                <span style="color: #94a3b8;">Test Accuracy</span>
+                <span style="font-weight: 700; color: #34d399;">60.22%</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 5px 0;">
+                <span style="color: #94a3b8;">Inference Speed</span>
+                <span style="font-weight: 600; color: #facc15;">&lt; 15ms</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 5px 0;">
+                <span style="color: #94a3b8;">Random Baseline</span>
+                <span style="color: #94a3b8;">3.57% (1/28)</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.divider()
+    # Spacer that expands to push the Clear Chat button to the bottom left corner
+    st.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
 
-    if st.button("🗑️ Clear Conversation", use_container_width=True):
+    # Dedicated Clear Chat section anchored at the bottom-left corner
+    st.markdown('<div class="sidebar-bottom-action">', unsafe_allow_html=True)
+    if st.button("🗑️ Clear Conversation", key="clear_chat_bottom_btn", use_container_width=True):
         st.session_state.messages = []
         st.session_state.speech_to_speak = ""
         st.session_state.widget_counter += 1
         st.session_state.cleared = True
         st.components.v1.html("<script>try { window.speechSynthesis.cancel(); if(window.parent && window.parent.speechSynthesis) window.parent.speechSynthesis.cancel(); } catch(e){}</script>", height=0)
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────
