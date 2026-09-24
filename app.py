@@ -300,13 +300,124 @@ st.markdown("""
         100% { transform: translateY(15px) translateX(-20px); opacity: 0.4; }
     }
 
-    /* Main container bounds */
+    /* Main container bounds - Instagram-style scrollable chat feed */
     .main .block-container {
-        max-width: 840px !important;
-        padding-top: 1.4rem !important;
-        padding-bottom: 2rem !important;
+        max-width: 820px !important;
+        padding-top: 86px !important;    /* Clears fixed Instagram header */
+        padding-bottom: 118px !important; /* Clears fixed bottom input dock */
         position: relative;
         z-index: 1;
+    }
+
+    /* ─── FIXED TOP-CENTER INSTAGRAM-STYLE HEADER ─── */
+    .instagram-top-bar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        height: 68px !important;
+        z-index: 9998 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: rgba(3, 7, 18, 0.85) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+        padding: 0 16px !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+
+    /* Shift header centering when sidebar is expanded */
+    body:has([data-testid="stSidebar"][aria-expanded="true"]) .instagram-top-bar {
+        padding-left: 336px !important;
+    }
+
+    .theme-light-active .instagram-top-bar,
+    [data-theme="light"] .instagram-top-bar {
+        background: rgba(255, 255, 255, 0.9) !important;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+    }
+
+    .instagram-header-center {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+    }
+
+    .insta-avatar-ring {
+        position: relative !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-bottom: 2px !important;
+    }
+
+    .insta-active-dot {
+        position: absolute !important;
+        bottom: -1px !important;
+        right: -2px !important;
+        width: 8px !important;
+        height: 8px !important;
+        border-radius: 50% !important;
+        background: #22c55e !important;
+        box-shadow: 0 0 8px #22c55e !important;
+        border: 1.5px solid #030712 !important;
+    }
+
+    .insta-title-wrap {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+    }
+
+    .insta-main-title {
+        font-size: 1.15rem !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.01em !important;
+        background: linear-gradient(90deg, #60a5fa, #c084fc, #34d399, #38bdf8, #60a5fa) !important;
+        background-size: 200% auto !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        line-height: 1.2 !important;
+    }
+
+    .insta-sub-title {
+        font-size: 0.72rem !important;
+        color: #94a3b8 !important;
+        font-weight: 500 !important;
+        letter-spacing: 0.01em !important;
+        line-height: 1.2 !important;
+    }
+
+    .theme-light-active .insta-sub-title,
+    [data-theme="light"] .insta-sub-title {
+        color: #64748b !important;
+    }
+
+    /* ─── FIXED BOTTOM-CENTER INPUT DOCK (NEVER MOVES) ─── */
+    .fixed-bottom-input-dock,
+    div[data-testid="stCustomComponentV1"]:has(iframe[title*="voice_input_widget"]),
+    div.element-container:has(iframe[title*="voice_input_widget"]),
+    div[data-testid="stVerticalBlock"]:has(> div iframe[title*="voice_input_widget"]) {
+        position: fixed !important;
+        bottom: 18px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: calc(100% - 32px) !important;
+        max-width: 760px !important;
+        z-index: 9998 !important;
+        margin: 0 !important;
+        pointer-events: auto !important;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+
+    body:has([data-testid="stSidebar"][aria-expanded="true"]) .fixed-bottom-input-dock,
+    body:has([data-testid="stSidebar"][aria-expanded="true"]) div.element-container:has(iframe[title*="voice_input_widget"]),
+    body:has([data-testid="stSidebar"][aria-expanded="true"]) div[data-testid="stCustomComponentV1"]:has(iframe[title*="voice_input_widget"]) {
+        left: calc(50% + 168px) !important;
     }
 
     /* Shimmering Holographic Title */
@@ -551,6 +662,20 @@ st.markdown("""
 <!-- Dynamic Theme & Corner Button Synchronizer -->
 <script>
 (function() {
+    function pinBottomDock() {
+        var iframes = document.querySelectorAll('iframe');
+        iframes.forEach(function(f) {
+            var isVoiceWidget = (f.title && f.title.includes('voice_input_widget')) || 
+                                (f.src && f.src.includes('voice_input_widget'));
+            if (isVoiceWidget) {
+                var container = f.closest('div[data-testid="stCustomComponentV1"]') || f.closest('.element-container') || f;
+                if (!container.classList.contains('fixed-bottom-input-dock')) {
+                    container.classList.add('fixed-bottom-input-dock');
+                }
+            }
+        });
+    }
+
     function positionClearBtn() {
         var buttons = document.querySelectorAll('button');
         buttons.forEach(function(b) {
@@ -597,18 +722,24 @@ st.markdown("""
         }
     }
 
+    pinBottomDock();
     positionClearBtn();
     syncTheme();
     var observer = new MutationObserver(function() {
+        pinBottomDock();
         positionClearBtn();
         syncTheme();
     });
     observer.observe(document.documentElement, { attributes: true, subtree: true, childList: true });
-    window.addEventListener('resize', syncTheme);
+    window.addEventListener('resize', function() {
+        pinBottomDock();
+        syncTheme();
+    });
     setInterval(function() {
+        pinBottomDock();
         positionClearBtn();
         syncTheme();
-    }, 600);
+    }, 500);
 })();
 </script>
 """, unsafe_allow_html=True)
@@ -1092,17 +1223,16 @@ if st.button("🗑️ Clear Chat", key="main_corner_clear_btn", help="Clear conv
 # ─────────────────────────────────────────────────────────
 
 st.markdown("""
-<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(148, 163, 184, 0.15);">
-    <div style="display: flex; align-items: center; gap: 12px;">
-        <span style="font-size: 2.2rem;">🎙️</span>
-        <div>
-            <h2 class="gradient-title" style="margin: 0; font-size: 1.75rem; font-weight: 800;">VoiceBot AI</h2>
-            <p style="margin: 2px 0 0 0; color: #94a3b8; font-size: 0.85rem;">Speech Recognition & Deep Learning Conversational Agent</p>
+<div class="instagram-top-bar">
+    <div class="instagram-header-center">
+        <div class="insta-avatar-ring">
+            <span style="font-size: 1.35rem;">🎙️</span>
+            <span class="insta-active-dot"></span>
         </div>
-    </div>
-    <div style="display: flex; align-items: center; gap: 6px; background: rgba(34, 197, 94, 0.12); border: 1px solid rgba(34, 197, 94, 0.3); padding: 4px 12px; border-radius: 20px;">
-        <span style="width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; box-shadow: 0 0 8px #22c55e;"></span>
-        <span style="font-size: 0.76rem; color: #86efac; font-weight: 600;">Hands-Free Voice</span>
+        <div class="insta-title-wrap">
+            <div class="insta-main-title">VoiceBot AI</div>
+            <div class="insta-sub-title">Speech Recognition & Deep Learning Conversational Agent</div>
+        </div>
     </div>
 </div>
 """, unsafe_allow_html=True)
