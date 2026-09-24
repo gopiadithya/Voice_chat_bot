@@ -315,17 +315,22 @@ st.markdown("""
         top: 0 !important;
         left: 0 !important;
         right: 0 !important;
-        height: 68px !important;
+        height: 60px !important;
         z-index: 9998 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        background: rgba(3, 7, 18, 0.85) !important;
-        backdrop-filter: blur(20px) !important;
-        -webkit-backdrop-filter: blur(20px) !important;
+        background: rgba(3, 7, 18, 0.88) !important;
+        backdrop-filter: blur(24px) !important;
+        -webkit-backdrop-filter: blur(24px) !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
         padding: 0 16px !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        pointer-events: none !important;
+    }
+
+    .instagram-top-bar * {
+        pointer-events: auto !important;
     }
 
     /* Shift header centering when sidebar is expanded */
@@ -341,10 +346,11 @@ st.markdown("""
 
     .instagram-header-center {
         display: flex !important;
-        flex-direction: column !important;
+        flex-direction: row !important;
         align-items: center !important;
         justify-content: center !important;
-        text-align: center !important;
+        gap: 12px !important;
+        text-align: left !important;
     }
 
     .insta-avatar-ring {
@@ -352,36 +358,43 @@ st.markdown("""
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
-        margin-bottom: 2px !important;
+        width: 38px !important;
+        height: 38px !important;
+        border-radius: 50% !important;
+        background: rgba(37, 99, 235, 0.2) !important;
+        border: 1px solid rgba(59, 130, 246, 0.4) !important;
+        box-shadow: 0 0 12px rgba(37, 99, 235, 0.3) !important;
+        flex-shrink: 0 !important;
     }
 
     .insta-active-dot {
         position: absolute !important;
-        bottom: -1px !important;
-        right: -2px !important;
-        width: 8px !important;
-        height: 8px !important;
+        bottom: 0px !important;
+        right: 0px !important;
+        width: 9px !important;
+        height: 9px !important;
         border-radius: 50% !important;
         background: #22c55e !important;
         box-shadow: 0 0 8px #22c55e !important;
-        border: 1.5px solid #030712 !important;
+        border: 2px solid #030712 !important;
     }
 
     .insta-title-wrap {
         display: flex !important;
         flex-direction: column !important;
-        align-items: center !important;
+        align-items: flex-start !important;
+        justify-content: center !important;
     }
 
     .insta-main-title {
-        font-size: 1.15rem !important;
+        font-size: 1.05rem !important;
         font-weight: 800 !important;
         letter-spacing: -0.01em !important;
         background: linear-gradient(90deg, #60a5fa, #c084fc, #34d399, #38bdf8, #60a5fa) !important;
         background-size: 200% auto !important;
         -webkit-background-clip: text !important;
         -webkit-text-fill-color: transparent !important;
-        line-height: 1.2 !important;
+        line-height: 1.25 !important;
     }
 
     .insta-sub-title {
@@ -399,25 +412,27 @@ st.markdown("""
 
     /* ─── FIXED BOTTOM-CENTER INPUT DOCK (NEVER MOVES) ─── */
     .fixed-bottom-input-dock,
-    div[data-testid="stCustomComponentV1"]:has(iframe[title*="voice_input_widget"]),
-    div.element-container:has(iframe[title*="voice_input_widget"]),
-    div[data-testid="stVerticalBlock"]:has(> div iframe[title*="voice_input_widget"]) {
+    div.element-container[class*="st-key-unified_input_bar"],
+    div.stElementContainer[class*="st-key-unified_input_bar"],
+    div.element-container:has(iframe[title*="voice_input_widget"]) {
         position: fixed !important;
         bottom: 18px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
         width: calc(100% - 32px) !important;
-        max-width: 760px !important;
+        max-width: 620px !important;
         z-index: 9998 !important;
         margin: 0 !important;
         pointer-events: auto !important;
-        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.3s ease !important;
     }
 
     body:has([data-testid="stSidebar"][aria-expanded="true"]) .fixed-bottom-input-dock,
-    body:has([data-testid="stSidebar"][aria-expanded="true"]) div.element-container:has(iframe[title*="voice_input_widget"]),
-    body:has([data-testid="stSidebar"][aria-expanded="true"]) div[data-testid="stCustomComponentV1"]:has(iframe[title*="voice_input_widget"]) {
+    body:has([data-testid="stSidebar"][aria-expanded="true"]) div.element-container[class*="st-key-unified_input_bar"],
+    body:has([data-testid="stSidebar"][aria-expanded="true"]) div.stElementContainer[class*="st-key-unified_input_bar"],
+    body:has([data-testid="stSidebar"][aria-expanded="true"]) div.element-container:has(iframe[title*="voice_input_widget"]) {
         left: calc(50% + 168px) !important;
+        max-width: min(620px, calc(100vw - 336px - 150px)) !important;
     }
 
     /* Shimmering Holographic Title */
@@ -499,10 +514,12 @@ st.markdown("""
 
     /* ─── FLOATING CLEAR CHAT BUTTON (OUTSIDE PANEL, BOTTOM-LEFT CORNER) ─── */
     .floating-corner-clear-wrap,
-    div[data-testid="stButton"]:has(button[key="main_corner_clear_btn"]) {
+    div.st-key-main_corner_clear_btn,
+    div.element-container.st-key-main_corner_clear_btn,
+    div.stElementContainer.st-key-main_corner_clear_btn {
         position: fixed !important;
-        bottom: 24px !important;
-        left: 24px !important;
+        bottom: 22px !important;
+        left: 20px !important;
         z-index: 99999 !important;
         width: auto !important;
         margin: 0 !important;
@@ -511,31 +528,34 @@ st.markdown("""
 
     /* When sidebar is expanded, smoothly shift button outside the sidebar panel */
     body:has([data-testid="stSidebar"][aria-expanded="true"]) .floating-corner-clear-wrap,
-    body:has([data-testid="stSidebar"][aria-expanded="true"]) div[data-testid="stButton"]:has(button[key="main_corner_clear_btn"]) {
-        left: calc(336px + 24px) !important;
+    body:has([data-testid="stSidebar"][aria-expanded="true"]) div.st-key-main_corner_clear_btn,
+    body:has([data-testid="stSidebar"][aria-expanded="true"]) div.element-container.st-key-main_corner_clear_btn,
+    body:has([data-testid="stSidebar"][aria-expanded="true"]) div.stElementContainer.st-key-main_corner_clear_btn {
+        left: calc(336px + 20px) !important;
     }
 
     .floating-corner-clear-wrap button,
-    button[key="main_corner_clear_btn"] {
+    div.st-key-main_corner_clear_btn button {
         border-radius: 9999px !important;
-        padding: 9px 18px !important;
-        background: rgba(15, 23, 42, 0.88) !important;
+        padding: 8px 14px !important;
+        background: rgba(15, 23, 42, 0.92) !important;
         backdrop-filter: blur(18px) !important;
         -webkit-backdrop-filter: blur(18px) !important;
-        border: 1px solid rgba(239, 68, 68, 0.4) !important;
+        border: 1px solid rgba(239, 68, 68, 0.45) !important;
         color: #fca5a5 !important;
         font-weight: 600 !important;
-        font-size: 0.84rem !important;
-        box-shadow: 0 4px 22px rgba(0, 0, 0, 0.45) !important;
+        font-size: 0.8rem !important;
+        box-shadow: 0 4px 22px rgba(0, 0, 0, 0.5) !important;
         display: inline-flex !important;
         align-items: center !important;
-        gap: 8px !important;
+        gap: 6px !important;
+        white-space: nowrap !important;
         transition: all 0.25s ease !important;
         cursor: pointer !important;
     }
 
     .floating-corner-clear-wrap button:hover,
-    button[key="main_corner_clear_btn"]:hover {
+    div.st-key-main_corner_clear_btn button:hover {
         background: rgba(239, 68, 68, 0.22) !important;
         border-color: rgba(239, 68, 68, 0.8) !important;
         color: #ffffff !important;
@@ -663,13 +683,15 @@ st.markdown("""
 <script>
 (function() {
     function pinBottomDock() {
+        var el = document.querySelector('[class*="st-key-unified_input_bar"]');
+        if (el && !el.classList.contains('fixed-bottom-input-dock')) {
+            el.classList.add('fixed-bottom-input-dock');
+        }
         var iframes = document.querySelectorAll('iframe');
         iframes.forEach(function(f) {
-            var isVoiceWidget = (f.title && f.title.includes('voice_input_widget')) || 
-                                (f.src && f.src.includes('voice_input_widget'));
-            if (isVoiceWidget) {
-                var container = f.closest('div[data-testid="stCustomComponentV1"]') || f.closest('.element-container') || f;
-                if (!container.classList.contains('fixed-bottom-input-dock')) {
+            if ((f.title && f.title.includes('voice_input_widget')) || (f.src && f.src.includes('voice_input_widget'))) {
+                var container = f.closest('.element-container') || f.parentElement;
+                if (container && !container.classList.contains('fixed-bottom-input-dock')) {
                     container.classList.add('fixed-bottom-input-dock');
                 }
             }
@@ -677,16 +699,10 @@ st.markdown("""
     }
 
     function positionClearBtn() {
-        var buttons = document.querySelectorAll('button');
-        buttons.forEach(function(b) {
-            var txt = (b.innerText || '').toLowerCase();
-            if (txt.includes('clear chat') || txt.includes('clear conversation')) {
-                var parent = b.closest('div[data-testid="stButton"]') || b;
-                if (!parent.classList.contains('floating-corner-clear-wrap')) {
-                    parent.classList.add('floating-corner-clear-wrap');
-                }
-            }
-        });
+        var el = document.querySelector('.st-key-main_corner_clear_btn');
+        if (el && !el.classList.contains('floating-corner-clear-wrap')) {
+            el.classList.add('floating-corner-clear-wrap');
+        }
     }
 
     function syncTheme() {
