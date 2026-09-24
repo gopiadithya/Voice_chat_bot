@@ -1650,7 +1650,6 @@ if spoken_data:
             "intent": agent_data.get("intent", ""),
             "confidence": agent_data.get("confidence", 1.0),
         })
-        st.session_state.widget_counter += 1
 
 else:
     with chat_container:

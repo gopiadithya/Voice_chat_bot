@@ -334,6 +334,10 @@
     finalAccumulatedText = "";
   });
 
+  // Debounce guard to prevent double submissions
+  let lastSubmitTs = 0;
+  const SUBMIT_DEBOUNCE_MS = 800;
+
   // Submit typed text
   function submitTextInput() {
     clearTimeout(silenceTimer);
@@ -348,11 +352,18 @@
     finalAccumulatedText = "";
 
     if (text) {
+      const now = Date.now();
+      if (now - lastSubmitTs < SUBMIT_DEBOUNCE_MS) {
+        console.log("Debounced duplicate submit");
+        resetUi();
+        return;
+      }
+      lastSubmitTs = now;
       input.placeholder = "Delivering answer...";
       input.value = "";
       sendToStreamlit({
         text: text,
-        ts: Date.now()
+        ts: now
       });
       setTimeout(resetUi, 600);
     }
@@ -408,7 +419,7 @@
         document.getElementById("chatInput").value = currentLive;
       }
 
-      // Auto-send when speaking finishes
+      // Auto-send when speaking finishes (silence detected)
       clearTimeout(silenceTimer);
       silenceTimer = setTimeout(() => {
         if (isListening && currentLive.length > 1) {
@@ -419,12 +430,34 @@
 
     recognition.onerror = (event) => {
       console.warn("Speech recognition notice:", event.error);
+      // On "no-speech" error, don't lose pending text
+      if (event.error === "no-speech" || event.error === "network") {
+        const input = document.getElementById("chatInput");
+        const pendingText = (finalAccumulatedText || (input ? input.value : "")).trim();
+        if (pendingText) {
+          // There's text the user spoke before the error — submit it
+          finishAndSubmit();
+          return;
+        }
+      }
       resetUi();
     };
 
     recognition.onend = () => {
-      if (isListening && !isBotSpeaking) {
+      // When recognition ends, always try to submit any pending text
+      // regardless of isListening flag (fixes the "need to speak twice" bug)
+      if (isBotSpeaking) {
+        resetUi();
+        return;
+      }
+      const input = document.getElementById("chatInput");
+      const pendingText = (finalAccumulatedText || (input ? input.value : "")).trim();
+      if (pendingText && isListening) {
         finishAndSubmit();
+      } else if (pendingText) {
+        // isListening was already cleared (e.g. by silence timer race) but text exists
+        // Force-submit the pending text
+        forceSubmitPendingText(pendingText);
       } else {
         resetUi();
       }
@@ -455,23 +488,59 @@
   }
 
   function finishAndSubmit() {
-    if (!isListening) return;
-    isListening = false;
     clearTimeout(silenceTimer);
+    const wasListening = isListening;
+    isListening = false;
     if (recognition) {
       try { recognition.stop(); } catch (e) {}
     }
 
     const input = document.getElementById("chatInput");
-    const text = (finalAccumulatedText || input.value).trim();
+    const text = (finalAccumulatedText || (input ? input.value : "")).trim();
     finalAccumulatedText = "";
 
     if (text) {
-      input.placeholder = "Delivering answer...";
-      input.value = "";
+      const now = Date.now();
+      if (now - lastSubmitTs < SUBMIT_DEBOUNCE_MS) {
+        console.log("Debounced duplicate finishAndSubmit");
+        resetUi();
+        return;
+      }
+      lastSubmitTs = now;
+      if (input) {
+        input.placeholder = "Delivering answer...";
+        input.value = "";
+      }
       sendToStreamlit({
         text: text,
-        ts: Date.now()
+        ts: now
+      });
+      setTimeout(resetUi, 600);
+    } else {
+      resetUi();
+    }
+  }
+
+  function forceSubmitPendingText(text) {
+    isListening = false;
+    clearTimeout(silenceTimer);
+    finalAccumulatedText = "";
+
+    if (text) {
+      const now = Date.now();
+      if (now - lastSubmitTs < SUBMIT_DEBOUNCE_MS) {
+        resetUi();
+        return;
+      }
+      lastSubmitTs = now;
+      const input = document.getElementById("chatInput");
+      if (input) {
+        input.placeholder = "Delivering answer...";
+        input.value = "";
+      }
+      sendToStreamlit({
+        text: text,
+        ts: now
       });
       setTimeout(resetUi, 600);
     } else {
