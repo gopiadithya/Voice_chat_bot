@@ -15,7 +15,6 @@ import time
 import json
 import pickle
 import random
-import base64
 import requests
 import numpy as np
 import streamlit as st
@@ -499,17 +498,6 @@ st.markdown("""
         font-size: 0.78rem;
         font-weight: 600;
         display: inline-block;
-    }
-    .badge-fish {
-        background: rgba(6, 182, 212, 0.15);
-        color: #22d3ee;
-        border: 1px solid rgba(6, 182, 212, 0.4);
-        padding: 3px 10px;
-        border-radius: 16px;
-        font-size: 0.78rem;
-        font-weight: 600;
-        display: inline-block;
-        margin-left: 6px;
     }
 
     /* ─── SIDEBAR MODERN GLASSMORPHISM ─── */
@@ -1252,30 +1240,21 @@ with st.sidebar:
         help="When enabled, the browser will automatically speak the chatbot's answers aloud."
     )
 
-    fish_api_k = get_secret("FISH_AUDIO_API_KEY")
-    if fish_api_k:
-        use_fish_audio = st.toggle(
-            "🐟 Fish Audio Neural Voice",
-            value=True,
-            help="High-fidelity ultra-natural neural speech synthesis powered by Fish Audio (s2.1-pro-free)."
+    if st.session_state.auto_tts:
+        voice_options = [
+            "Google US English (Warm & Natural)",
+            "Google UK English Female (British)",
+            "Google UK English Male (British)",
+            "Microsoft Natural (Edge Online)",
+        ]
+        curr_voice = st.session_state.get("tts_voice_accent", voice_options[0])
+        default_idx = voice_options.index(curr_voice) if curr_voice in voice_options else 0
+        st.session_state.tts_voice_accent = st.selectbox(
+            "🎙️ Natural Voice Model",
+            voice_options,
+            index=default_idx,
+            help="Select the AI neural voice model for lifelike English speech."
         )
-    else:
-        use_fish_audio = False
-
-    if fish_api_k and use_fish_audio:
-        st.markdown("""
-        <div style="background: rgba(15, 23, 42, 0.72); border: 1px solid rgba(6, 182, 212, 0.28); border-radius: 14px; padding: 14px 16px; margin-top: 14px; margin-bottom: 16px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35); backdrop-filter: blur(14px);">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                <span style="font-size: 0.72rem; font-weight: 700; color: #22d3ee; letter-spacing: 0.06em; text-transform: uppercase;">VOICE SYNTHESIS</span>
-                <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; color: #22d3ee; background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.3); padding: 2px 8px; border-radius: 20px;">
-                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #22d3ee; box-shadow: 0 0 6px #22d3ee;"></span>
-                    Neural HD
-                </span>
-            </div>
-            <div style="font-size: 0.95rem; font-weight: 700; color: #f1f5f9; margin-bottom: 4px;">Fish Audio (s2.1-pro)</div>
-            <div style="font-size: 0.78rem; color: #94a3b8;">Ultra-natural human voice output</div>
-        </div>
-        """, unsafe_allow_html=True)
 
     st.markdown("<div style='margin: 12px 0;'></div>", unsafe_allow_html=True)
 
@@ -1318,16 +1297,7 @@ if st.button("🗑️ Clear Chat", key="main_corner_clear_btn", help="Clear conv
     st.session_state.speech_to_speak = ""
     st.session_state.widget_counter += 1
     st.session_state.cleared = True
-    st.components.v1.html("""<script>
-        try {
-            if (window.speechSynthesis) window.speechSynthesis.cancel();
-            if (window.parent && window.parent.speechSynthesis) window.parent.speechSynthesis.cancel();
-            if (window.parent && window.parent.currentBotAudio) {
-                window.parent.currentBotAudio.pause();
-                window.parent.currentBotAudio.currentTime = 0;
-            }
-        } catch(e){}
-    </script>""", height=0)
+    st.components.v1.html("<script>try { window.speechSynthesis.cancel(); if(window.parent && window.parent.speechSynthesis) window.parent.speechSynthesis.cancel(); } catch(e){}</script>", height=0)
     st.rerun()
 
 
@@ -1352,17 +1322,71 @@ st.markdown("""
 
 
 # ─────────────────────────────────────────────────────────
-# BROWSER TEXT-TO-SPEECH HELPER
+# NATURAL CONVERSATIONAL SPEECH SYNTHESIS
 # ─────────────────────────────────────────────────────────
 
-def trigger_browser_tts(text_to_speak: str):
-    """Speaks the response aloud via Web Speech API in parallel with live caption streaming."""
+def clean_for_speech(text: str) -> str:
+    """Sanitizes AI responses into natural, conversational spoken English."""
+    # 1. Remove code blocks and inline code
+    text = re.sub(r'```[\s\S]*?```', '', text)
+    text = re.sub(r'`([^`]+)`', r'\1', text)
+    # 2. Convert markdown links [text](url) -> text
+    text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
+    # 3. Remove raw URLs and citations like [1], [2]
+    text = re.sub(r'https?://\S+', '', text)
+    text = re.sub(r'\[\d+\]', '', text)
+    # 4. Remove markdown headers (#, ##, etc.)
+    text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
+    # 5. Remove markdown bold and italics
+    text = re.sub(r'\*\*([^\*]+)\*\*', r'\1', text)
+    text = re.sub(r'\*([^\*]+)\*', r'\1', text)
+    text = re.sub(r'__([^__]+)__', r'\1', text)
+    text = re.sub(r'_([^_]+)_', r'\1', text)
+    # 6. Remove bullet points and numbered list markers
+    text = re.sub(r'^\s*[-*•]\s+', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE)
+    # 7. Convert symbols to spoken English words for natural pronunciation
+    text = text.replace('&', ' and ')
+    text = text.replace('%', ' percent ')
+    text = text.replace('—', ', ').replace('--', ', ')
+    text = text.replace('|', ' ')
+    # 8. Remove emojis and decorative unicode symbols
+    emoji_pattern = re.compile(
+        "["
+        "\U0001F600-\U0001F64F"
+        "\U0001F300-\U0001F5FF"
+        "\U0001F680-\U0001F6FF"
+        "\U0001F1E0-\U0001F1FF"
+        "\U00002702-\U000027B0"
+        "\U000024C2-\U0001F251"
+        "\U0001F900-\U0001F9FF"
+        "\U0001FA70-\U0001FAFF"
+        "]+",
+        flags=re.UNICODE
+    )
+    text = emoji_pattern.sub('', text)
+    # 9. Clean up multiple whitespaces
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+
+def trigger_browser_tts(text_to_speak: str, voice_pref: str = "Google US English (Warm & Natural)"):
+    """
+    Speaks the response aloud via high-fidelity Neural Web Speech API.
+    Uses sentence-chunked streaming to ensure natural human cadence,
+    lifelike pauses, and prevents browser audio cutoffs.
+    """
+    spoken_text = clean_for_speech(text_to_speak)
+    if not spoken_text:
+        return
+
     clean_text = (
-        text_to_speak.replace("\\", "\\\\")
+        spoken_text.replace("\\", "\\\\")
         .replace("`", "\\`")
         .replace('"', '\\"')
         .replace("\n", " ")
     )
+    safe_pref = voice_pref.replace('"', '\\"')
     tts_js = f"""
     <script>
         (function() {{
@@ -1372,6 +1396,8 @@ def trigger_browser_tts(text_to_speak: str):
                     synth = window.parent.speechSynthesis;
                 }}
             }} catch(e) {{}}
+
+            if (!synth) return;
 
             function notifyVoiceWidget(isSpeaking) {{
                 try {{
@@ -1387,139 +1413,137 @@ def trigger_browser_tts(text_to_speak: str):
                 }} catch(e) {{}}
             }}
 
-            if (synth) {{
-                synth.cancel();
-                notifyVoiceWidget(true);
+            synth.cancel();
+            notifyVoiceWidget(true);
 
-                var utterance = new SpeechSynthesisUtterance("{clean_text}");
-                utterance.rate = 1.0;
-                utterance.pitch = 1.0;
+            var fullText = "{clean_text}";
+            var pref = "{safe_pref}";
 
-                utterance.onend = function() {{
-                    notifyVoiceWidget(false);
-                }};
-                utterance.onerror = function() {{
-                    notifyVoiceWidget(false);
-                }};
+            function selectBestNaturalVoice() {{
+                var voices = synth.getVoices() || [];
+                if (voices.length === 0) return null;
 
-                function setVoiceAndSpeak() {{
-                    var voices = synth.getVoices();
-                    var preferred = voices.find(function(v) {{
-                        return v.name.includes('Google UK English Female') || 
-                               v.name.includes('Natural') || 
-                               v.name.includes('Samantha') || 
-                               v.name.includes('Zira') ||
-                               (v.lang && v.lang.startsWith('en'));
+                // Priority based on user preference
+                if (pref.includes("US")) {{
+                    var v = voices.find(function(x) {{
+                        return x.name === "Google US English" || 
+                               (x.name.includes("US") && x.name.includes("English") && !x.name.includes("Desktop"));
                     }});
-                    if (preferred) utterance.voice = preferred;
-                    synth.speak(utterance);
+                    if (v) return v;
+                }} else if (pref.includes("UK English Female")) {{
+                    var v = voices.find(function(x) {{ return x.name.includes("UK English Female"); }});
+                    if (v) return v;
+                }} else if (pref.includes("UK English Male")) {{
+                    var v = voices.find(function(x) {{ return x.name.includes("UK English Male"); }});
+                    if (v) return v;
+                }} else if (pref.includes("Edge") || pref.includes("Natural")) {{
+                    var v = voices.find(function(x) {{ return x.name.includes("Natural") || x.name.includes("Online"); }});
+                    if (v) return v;
                 }}
 
-                if (synth.getVoices().length > 0) {{
-                    setVoiceAndSpeak();
-                }} else {{
-                    synth.onvoiceschanged = setVoiceAndSpeak;
+                // Automatic fallback: highest-fidelity Neural voices
+                var neuralVoices = [
+                    "Google US English",
+                    "Google UK English Female",
+                    "Google UK English Male",
+                    "Microsoft Jenny Online (Natural) - English (United States)",
+                    "Microsoft Guy Online (Natural) - English (United States)",
+                    "Microsoft Aria Online (Natural) - English (United States)",
+                    "Samantha",
+                    "Karen"
+                ];
+
+                for (var i = 0; i < neuralVoices.length; i++) {{
+                    var m = voices.find(function(x) {{ return x.name.includes(neuralVoices[i]); }});
+                    if (m) return m;
                 }}
+
+                // Any English voice that is NOT a robotic legacy desktop synthesizer
+                var naturalEnglish = voices.find(function(x) {{
+                    var n = x.name.toLowerCase();
+                    return (x.lang && x.lang.startsWith("en")) && 
+                           !n.includes("desktop") && 
+                           !n.includes("zira") && 
+                           !n.includes("david") && 
+                           !n.includes("mark");
+                }});
+                if (naturalEnglish) return naturalEnglish;
+
+                return voices.find(function(x) {{ return x.lang && x.lang.startsWith("en"); }}) || voices[0];
+            }}
+
+            function playNaturalSpeech() {{
+                var chosenVoice = selectBestNaturalVoice();
+
+                // Split into sentences for human-like breath pauses and prosody
+                var rawSentences = fullText.match(/[^.!?]+[.!?]+|\S+/g) || [fullText];
+                var sentenceQueue = [];
+                var chunk = "";
+                for (var i = 0; i < rawSentences.length; i++) {{
+                    chunk += (chunk ? " " : "") + rawSentences[i].trim();
+                    if (chunk.length >= 40 || i === rawSentences.length - 1) {{
+                        sentenceQueue.push(chunk);
+                        chunk = "";
+                    }}
+                }}
+                if (chunk) sentenceQueue.push(chunk);
+
+                var idx = 0;
+                function speakSentence() {{
+                    if (idx >= sentenceQueue.length) {{
+                        notifyVoiceWidget(false);
+                        return;
+                    }}
+                    var sText = sentenceQueue[idx++];
+                    var u = new SpeechSynthesisUtterance(sText);
+                    if (chosenVoice) u.voice = chosenVoice;
+                    u.rate = 1.0;
+                    u.pitch = 1.0;
+
+                    u.onend = function() {{
+                        speakSentence();
+                    }};
+                    u.onerror = function() {{
+                        speakSentence();
+                    }};
+
+                    synth.speak(u);
+                }}
+
+                speakSentence();
+            }}
+
+            // Ensure neural voices have loaded
+            var currentVoices = synth.getVoices();
+            var hasNeural = currentVoices.some(function(v) {{
+                return !v.localService || v.name.includes("Google") || v.name.includes("Natural");
+            }});
+
+            if (currentVoices.length > 0 && hasNeural) {{
+                playNaturalSpeech();
+            }} else {{
+                var checks = 0;
+                var timer = setInterval(function() {{
+                    checks++;
+                    var vList = synth.getVoices();
+                    var ready = vList.some(function(v) {{
+                        return !v.localService || v.name.includes("Google") || v.name.includes("Natural");
+                    }});
+                    if (ready || checks >= 10) {{
+                        clearInterval(timer);
+                        playNaturalSpeech();
+                    }}
+                }}, 100);
+
+                synth.onvoiceschanged = function() {{
+                    clearInterval(timer);
+                    playNaturalSpeech();
+                }};
             }}
         }})();
     </script>
     """
     st.components.v1.html(tts_js, height=0)
-
-
-def generate_fish_audio(text: str):
-    """
-    Generate natural neural human speech using Fish Audio API (s2.1-pro-free model).
-    Returns base64-encoded MP3 data string or None on failure/timeout.
-    """
-    api_key = get_secret("FISH_AUDIO_API_KEY")
-    if not api_key:
-        return None
-    try:
-        url = "https://api.fish.audio/v1/tts"
-        headers = {
-            "Authorization": f"Bearer {api_key.strip()}",
-            "Content-Type": "application/json",
-            "model": "s2.1-pro-free"
-        }
-        payload = {
-            "text": text,
-            "format": "mp3"
-        }
-        resp = requests.post(url, headers=headers, json=payload, timeout=12)
-        if resp.status_code == 200 and resp.content and len(resp.content) > 1000:
-            return base64.b64encode(resp.content).decode("utf-8")
-        else:
-            print(f"[Fish Audio] Status {resp.status_code}: {resp.text[:120]}")
-    except Exception as e:
-        print(f"[Fish Audio] Request error: {e}")
-    return None
-
-
-def trigger_voice_speech(text_to_speak: str, use_fish: bool = True) -> str:
-    """
-    Speaks the response aloud using Fish Audio Neural Voice when enabled,
-    automatically falling back to the Web Speech API if offline or unavailable.
-    Returns the engine used: 'fish' or 'browser'.
-    """
-    fish_b64 = None
-    if use_fish:
-        fish_b64 = generate_fish_audio(text_to_speak)
-
-    if fish_b64:
-        fish_player_js = f"""
-        <script>
-            (function() {{
-                try {{
-                    var parentWin = window.parent || window;
-                    if (parentWin.currentBotAudio) {{
-                        try {{ parentWin.currentBotAudio.pause(); parentWin.currentBotAudio.currentTime = 0; }} catch(e) {{}}
-                    }}
-                    if (parentWin.speechSynthesis) {{
-                        try {{ parentWin.speechSynthesis.cancel(); }} catch(e) {{}}
-                    }}
-
-                    function notifyVoiceWidget(isSpeaking) {{
-                        try {{
-                            var doc = parentWin.document || document;
-                            var iframes = doc.querySelectorAll('iframe');
-                            iframes.forEach(function(f) {{
-                                try {{
-                                    f.contentWindow.postMessage({{
-                                        type: isSpeaking ? "BOT_SPEAKING" : "BOT_DONE_SPEAKING"
-                                    }}, "*");
-                                }} catch(err) {{}}
-                            }});
-                        }} catch(e) {{}}
-                    }}
-
-                    var audio = new Audio("data:audio/mp3;base64,{fish_b64}");
-                    parentWin.currentBotAudio = audio;
-
-                    audio.onplay = function() {{ notifyVoiceWidget(true); }};
-                    audio.onended = function() {{ notifyVoiceWidget(false); }};
-                    audio.onpause = function() {{ notifyVoiceWidget(false); }};
-                    audio.onerror = function() {{ notifyVoiceWidget(false); }};
-
-                    notifyVoiceWidget(true);
-                    var playPromise = audio.play();
-                    if (playPromise !== undefined) {{
-                        playPromise.catch(function(err) {{
-                            console.warn("Autoplay block or error:", err);
-                            notifyVoiceWidget(false);
-                        }});
-                    }}
-                }} catch(err) {{
-                    console.error("Fish Audio playback error:", err);
-                }}
-            }})();
-        </script>
-        """
-        st.components.v1.html(fish_player_js, height=0)
-        return "fish"
-    else:
-        trigger_browser_tts(text_to_speak)
-        return "browser"
 
 
 # ─────────────────────────────────────────────────────────
@@ -1559,15 +1583,10 @@ if spoken_data:
                     st.markdown(msg["content"])
                     if msg["role"] == "assistant":
                         engine_name = msg.get("engine", "")
-                        badges = []
                         if "Rollback" in engine_name:
-                            badges.append("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>")
+                            st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
                         elif "BiLSTM" in engine_name and force_bilstm:
-                            badges.append("<span class='badge-bilstm'>🧠 BiLSTM</span>")
-                        if msg.get("voice") == "fish":
-                            badges.append("<span class='badge-fish'>🐟 Fish Audio Neural HD</span>")
-                        if badges:
-                            st.markdown(" ".join(badges), unsafe_allow_html=True)
+                            st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
 
             # Render current user question
             with st.chat_message("user"):
@@ -1583,15 +1602,16 @@ if spoken_data:
 
                 reply_text = agent_data["reply"]
 
-                # Trigger voice speech (Fish Audio Neural Voice or Browser Web Speech fallback)
-                used_voice_engine = "browser"
+                # Trigger browser TTS immediately so words stream in sync with spoken voice
                 if st.session_state.auto_tts:
-                    used_voice_engine = trigger_voice_speech(reply_text, use_fish=use_fish_audio)
+                    chosen_voice_pref = st.session_state.get("tts_voice_accent", "Google US English (Warm & Natural)")
+                    trigger_browser_tts(reply_text, voice_pref=chosen_voice_pref)
 
-                # Live caption streaming generator: parallelized to voice speech timing
+                # Live caption streaming generator: parallelized to voice speech timing (~142 WPM)
                 def stream_live_captions():
                     if st.session_state.auto_tts:
-                        time.sleep(0.4)
+                        # Synchronize with Web Speech API audio initialization buffer
+                        time.sleep(0.65)
 
                     tokens = re.split(r'(\s+)', reply_text)
                     for token in tokens:
@@ -1599,12 +1619,13 @@ if spoken_data:
                             yield token
                             if not token.isspace():
                                 if st.session_state.auto_tts:
+                                    # Paced in parallel to spoken vocal delivery
                                     word_clean = token.strip()
-                                    delay = 0.24 + (len(word_clean) * 0.02)
+                                    delay = 0.28 + (len(word_clean) * 0.022)
                                     if word_clean.endswith((',', ';', ':', '—', '-')):
-                                        delay += 0.22
+                                        delay += 0.28
                                     elif word_clean.endswith(('.', '!', '?')):
-                                        delay += 0.38
+                                        delay += 0.46
                                     time.sleep(delay)
                                 else:
                                     time.sleep(0.02)
@@ -1612,15 +1633,10 @@ if spoken_data:
                 st.write_stream(stream_live_captions)
 
                 engine_name = agent_data.get("engine", "")
-                live_badges = []
                 if "Rollback" in engine_name:
-                    live_badges.append("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>")
+                    st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
                 elif "BiLSTM" in engine_name and force_bilstm:
-                    live_badges.append("<span class='badge-bilstm'>🧠 BiLSTM</span>")
-                if used_voice_engine == "fish":
-                    live_badges.append("<span class='badge-fish'>🐟 Fish Audio Neural HD</span>")
-                if live_badges:
-                    st.markdown(" ".join(live_badges), unsafe_allow_html=True)
+                    st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
 
             # Auto-scroll down to ensure complete reply is in full view above the dock
             st.components.v1.html("<script>try{window.parent.scrollTo({top: window.parent.document.body.scrollHeight, behavior: 'smooth'});}catch(e){}</script>", height=0)
@@ -1633,7 +1649,6 @@ if spoken_data:
             "engine": agent_data.get("engine", "BiLSTM"),
             "intent": agent_data.get("intent", ""),
             "confidence": agent_data.get("confidence", 1.0),
-            "voice": used_voice_engine,
         })
         st.session_state.widget_counter += 1
 
@@ -1653,12 +1668,7 @@ else:
                     st.markdown(msg["content"])
                     if msg["role"] == "assistant":
                         engine_name = msg.get("engine", "")
-                        badges = []
                         if "Rollback" in engine_name:
-                            badges.append("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>")
+                            st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
                         elif "BiLSTM" in engine_name and force_bilstm:
-                            badges.append("<span class='badge-bilstm'>🧠 BiLSTM</span>")
-                        if msg.get("voice") == "fish":
-                            badges.append("<span class='badge-fish'>🐟 Fish Audio Neural HD</span>")
-                        if badges:
-                            st.markdown(" ".join(badges), unsafe_allow_html=True)
+                            st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
