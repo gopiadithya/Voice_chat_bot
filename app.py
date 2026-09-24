@@ -451,19 +451,32 @@ st.markdown("""
 
     /* Modern Glassmorphism Chat Bubbles */
     div[data-testid="stChatMessage"] {
-        background: rgba(15, 23, 42, 0.72) !important;
-        backdrop-filter: blur(18px) !important;
-        border: 1px solid rgba(255, 255, 255, 0.08) !important;
-        border-radius: 18px !important;
-        padding: 14px 20px !important;
-        margin-bottom: 12px !important;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
-        transition: transform 0.2s ease, border-color 0.2s ease;
+        backdrop-filter: blur(24px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+        border-radius: 20px !important;
+        padding: 16px 22px !important;
+        margin-bottom: 14px !important;
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease, box-shadow 0.25s ease !important;
+    }
+
+    /* User Message Bubble: Sleek Deep Sapphire Glass */
+    div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
+        background: linear-gradient(135deg, rgba(22, 33, 58, 0.82) 0%, rgba(15, 23, 42, 0.90) 100%) !important;
+        border: 1px solid rgba(56, 189, 248, 0.22) !important;
+        box-shadow: 0 10px 32px -4px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
+    }
+
+    /* Assistant Message Bubble: Midnight Obsidian Glass */
+    div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.88) 0%, rgba(10, 16, 32, 0.94) 100%) !important;
+        border: 1px solid rgba(148, 163, 184, 0.18) !important;
+        box-shadow: 0 10px 32px -4px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
     }
 
     div[data-testid="stChatMessage"]:hover {
-        border-color: rgba(96, 165, 250, 0.45) !important;
-        transform: translateY(-1px);
+        border-color: rgba(56, 189, 248, 0.45) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 14px 40px -4px rgba(0, 0, 0, 0.65), 0 0 20px rgba(56, 189, 248, 0.15) !important;
     }
 
     .badge-bilstm {
@@ -1314,11 +1327,34 @@ def trigger_browser_tts(text_to_speak: str):
                 }}
             }} catch(e) {{}}
 
+            function notifyVoiceWidget(isSpeaking) {{
+                try {{
+                    var doc = (window.parent && window.parent.document) ? window.parent.document : document;
+                    var iframes = doc.querySelectorAll('iframe');
+                    iframes.forEach(function(f) {{
+                        try {{
+                            f.contentWindow.postMessage({{
+                                type: isSpeaking ? "BOT_SPEAKING" : "BOT_DONE_SPEAKING"
+                            }}, "*");
+                        }} catch(err) {{}}
+                    }});
+                }} catch(e) {{}}
+            }}
+
             if (synth) {{
                 synth.cancel();
+                notifyVoiceWidget(true);
+
                 var utterance = new SpeechSynthesisUtterance("{clean_text}");
                 utterance.rate = 1.0;
                 utterance.pitch = 1.0;
+
+                utterance.onend = function() {{
+                    notifyVoiceWidget(false);
+                }};
+                utterance.onerror = function() {{
+                    notifyVoiceWidget(false);
+                }};
 
                 function setVoiceAndSpeak() {{
                     var voices = synth.getVoices();
@@ -1448,6 +1484,7 @@ if spoken_data:
             "intent": agent_data.get("intent", ""),
             "confidence": agent_data.get("confidence", 1.0),
         })
+        st.session_state.widget_counter += 1
 
 else:
     with chat_container:
