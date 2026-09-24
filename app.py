@@ -361,7 +361,7 @@ st.markdown("""
         display: inline-block;
     }
 
-    /* ─── SIDEBAR MODERN GLASSMORPHISM & PINNED BOTTOM ─── */
+    /* ─── SIDEBAR MODERN GLASSMORPHISM ─── */
     section[data-testid="stSidebar"] {
         background: linear-gradient(180deg, rgba(8, 14, 28, 0.96) 0%, rgba(3, 7, 18, 0.98) 100%) !important;
         backdrop-filter: blur(24px) !important;
@@ -375,12 +375,6 @@ st.markdown("""
         padding-bottom: 1.2rem !important;
     }
 
-    /* Spacer pushing bottom items to the bottom corner */
-    .sidebar-spacer {
-        flex-grow: 1 !important;
-        min-height: 40px !important;
-    }
-
     /* Expander card in sidebar */
     section[data-testid="stSidebar"] [data-testid="stExpander"] {
         background: rgba(15, 23, 42, 0.55) !important;
@@ -392,38 +386,76 @@ st.markdown("""
         border-color: rgba(96, 165, 250, 0.35) !important;
     }
 
-    /* Clear Chat Button anchored in the bottom-left corner */
-    .sidebar-bottom-action {
-        margin-top: auto !important;
-        padding-top: 14px !important;
-        border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    /* ─── FLOATING CLEAR CHAT BUTTON (OUTSIDE PANEL, BOTTOM-LEFT CORNER) ─── */
+    .floating-corner-clear-wrap,
+    div[data-testid="stButton"]:has(button[key="main_corner_clear_btn"]) {
+        position: fixed !important;
+        bottom: 24px !important;
+        left: 24px !important;
+        z-index: 99999 !important;
+        width: auto !important;
+        margin: 0 !important;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease !important;
     }
 
-    section[data-testid="stSidebar"] div.stButton button {
-        background: rgba(239, 68, 68, 0.1) !important;
-        border: 1px solid rgba(239, 68, 68, 0.28) !important;
-        color: #fca5a5 !important;
-        border-radius: 12px !important;
-        font-weight: 600 !important;
-        font-size: 0.88rem !important;
-        padding: 10px 16px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-        text-align: left !important;
-        gap: 8px !important;
-        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    /* When sidebar is expanded, smoothly shift button outside the sidebar panel */
+    body:has([data-testid="stSidebar"][aria-expanded="true"]) .floating-corner-clear-wrap,
+    body:has([data-testid="stSidebar"][aria-expanded="true"]) div[data-testid="stButton"]:has(button[key="main_corner_clear_btn"]) {
+        left: calc(336px + 24px) !important;
     }
-    section[data-testid="stSidebar"] div.stButton button:hover {
+
+    .floating-corner-clear-wrap button,
+    button[key="main_corner_clear_btn"] {
+        border-radius: 9999px !important;
+        padding: 9px 18px !important;
+        background: rgba(15, 23, 42, 0.88) !important;
+        backdrop-filter: blur(18px) !important;
+        -webkit-backdrop-filter: blur(18px) !important;
+        border: 1px solid rgba(239, 68, 68, 0.4) !important;
+        color: #fca5a5 !important;
+        font-weight: 600 !important;
+        font-size: 0.84rem !important;
+        box-shadow: 0 4px 22px rgba(0, 0, 0, 0.45) !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        transition: all 0.25s ease !important;
+        cursor: pointer !important;
+    }
+
+    .floating-corner-clear-wrap button:hover,
+    button[key="main_corner_clear_btn"]:hover {
         background: rgba(239, 68, 68, 0.22) !important;
-        border-color: rgba(239, 68, 68, 0.6) !important;
+        border-color: rgba(239, 68, 68, 0.8) !important;
         color: #ffffff !important;
-        box-shadow: 0 4px 18px rgba(239, 68, 68, 0.35) !important;
-        transform: translateY(-1px) !important;
+        box-shadow: 0 6px 26px rgba(239, 68, 68, 0.4) !important;
+        transform: translateY(-2px) !important;
+    }
+
+    /* ─── TOP HEADER & TOOLBAR ACCESSIBILITY (THEMES, MENU, SHARE, GITHUB) ─── */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+        z-index: 1000000 !important;
+        pointer-events: auto !important;
+    }
+    [data-testid="stToolbar"],
+    [data-testid="stToolbarActions"],
+    [data-testid="stMainMenu"],
+    header[data-testid="stHeader"] button,
+    header[data-testid="stHeader"] a {
+        pointer-events: auto !important;
+        z-index: 1000001 !important;
+    }
+
+    /* Ensure animated canvas elements NEVER capture pointer events */
+    .animated-bg-container,
+    .animated-bg-container * {
+        pointer-events: none !important;
+        user-select: none !important;
     }
 
     /* Remove Streamlit default black bottom container & footer */
-    [data-testid="stBottom"], [data-testid="stBottom"] > div, footer, header[data-testid="stHeader"] {
+    [data-testid="stBottom"], [data-testid="stBottom"] > div, footer {
         background: transparent !important;
         border: none !important;
         box-shadow: none !important;
@@ -431,6 +463,60 @@ st.markdown("""
     footer {
         display: none !important;
         visibility: hidden !important;
+    }
+
+    /* ─── STREAMLIT THEME ADAPTATION (SYSTEM, LIGHT, DARK) ─── */
+    html.theme-light-active .stApp,
+    body.theme-light-active .stApp,
+    [data-theme="light"] .stApp {
+        background-color: #f8fafc !important;
+        color: #0f172a !important;
+    }
+
+    html.theme-light-active .animated-bg-container .orb,
+    [data-theme="light"] .animated-bg-container .orb {
+        opacity: 0.18 !important;
+        filter: blur(100px) !important;
+    }
+
+    html.theme-light-active .cyber-grid,
+    [data-theme="light"] .cyber-grid {
+        background-image: 
+            linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px) !important;
+        opacity: 0.55 !important;
+    }
+
+    html.theme-light-active div[data-testid="stChatMessage"],
+    [data-theme="light"] div[data-testid="stChatMessage"] {
+        background: rgba(255, 255, 255, 0.9) !important;
+        border: 1px solid rgba(0, 0, 0, 0.09) !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+        color: #0f172a !important;
+    }
+
+    html.theme-light-active div[data-testid="stChatMessage"] *,
+    [data-theme="light"] div[data-testid="stChatMessage"] * {
+        color: #0f172a !important;
+    }
+
+    html.theme-light-active section[data-testid="stSidebar"],
+    [data-theme="light"] section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, rgba(248, 250, 252, 0.98) 0%, rgba(241, 245, 249, 0.98) 100%) !important;
+        border-right: 1px solid rgba(0, 0, 0, 0.08) !important;
+    }
+
+    html.theme-light-active section[data-testid="stSidebar"] *,
+    [data-theme="light"] section[data-testid="stSidebar"] * {
+        color: #0f172a !important;
+    }
+
+    html.theme-light-active .floating-corner-clear-wrap button,
+    [data-theme="light"] .floating-corner-clear-wrap button {
+        background: rgba(255, 255, 255, 0.95) !important;
+        border: 1px solid rgba(239, 68, 68, 0.45) !important;
+        color: #dc2626 !important;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08) !important;
     }
 </style>
 
@@ -461,6 +547,70 @@ st.markdown("""
     <div class="particle p9"></div>
     <div class="particle p10"></div>
 </div>
+
+<!-- Dynamic Theme & Corner Button Synchronizer -->
+<script>
+(function() {
+    function positionClearBtn() {
+        var buttons = document.querySelectorAll('button');
+        buttons.forEach(function(b) {
+            var txt = (b.innerText || '').toLowerCase();
+            if (txt.includes('clear chat') || txt.includes('clear conversation')) {
+                var parent = b.closest('div[data-testid="stButton"]') || b;
+                if (!parent.classList.contains('floating-corner-clear-wrap')) {
+                    parent.classList.add('floating-corner-clear-wrap');
+                }
+            }
+        });
+    }
+
+    function syncTheme() {
+        var isLight = false;
+        var themeAttr = document.documentElement.getAttribute('data-theme') || 
+                        document.body.getAttribute('data-theme') ||
+                        document.body.getAttribute('data-base-theme');
+        if (themeAttr === 'light') {
+            isLight = true;
+        } else {
+            var stApp = document.querySelector('.stApp');
+            var bg = stApp ? window.getComputedStyle(stApp).backgroundColor : '';
+            if (!bg || bg.indexOf('rgba(0, 0, 0, 0)') !== -1 || bg === 'transparent') {
+                bg = window.getComputedStyle(document.body).backgroundColor;
+            }
+            var rgb = (bg || '').match(/\d+/g);
+            if (rgb && rgb.length >= 3) {
+                var lum = (0.299 * parseInt(rgb[0]) + 0.587 * parseInt(rgb[1]) + 0.114 * parseInt(rgb[2]));
+                if (lum > 140) isLight = true;
+            }
+        }
+
+        if (isLight) {
+            document.documentElement.classList.add('theme-light-active');
+            document.body.classList.add('theme-light-active');
+            document.documentElement.classList.remove('theme-dark-active');
+            document.body.classList.remove('theme-dark-active');
+        } else {
+            document.documentElement.classList.add('theme-dark-active');
+            document.body.classList.add('theme-dark-active');
+            document.documentElement.classList.remove('theme-light-active');
+            document.body.classList.remove('theme-light-active');
+        }
+    }
+
+    positionClearBtn();
+    syncTheme();
+    var observer = new MutationObserver(function() {
+        positionClearBtn();
+        syncTheme();
+    });
+    observer.observe(document.documentElement, { attributes: true, subtree: true, childList: true });
+    window.addEventListener('resize', syncTheme);
+    setInterval(function() {
+        positionClearBtn();
+        syncTheme();
+    }, 600);
+})();
+</script>
 """, unsafe_allow_html=True)
 
 
@@ -924,19 +1074,17 @@ with st.sidebar:
         </div>
         """, unsafe_allow_html=True)
 
-    # Spacer that expands to push the Clear Chat button to the bottom left corner
-    st.markdown('<div class="sidebar-spacer"></div>', unsafe_allow_html=True)
+# ─────────────────────────────────────────────────────────
+# FLOATING CLEAR CHAT BUTTON (OUTSIDE PANEL, BOTTOM-LEFT CORNER)
+# ─────────────────────────────────────────────────────────
 
-    # Dedicated Clear Chat section anchored at the bottom-left corner
-    st.markdown('<div class="sidebar-bottom-action">', unsafe_allow_html=True)
-    if st.button("🗑️ Clear Conversation", key="clear_chat_bottom_btn", use_container_width=True):
-        st.session_state.messages = []
-        st.session_state.speech_to_speak = ""
-        st.session_state.widget_counter += 1
-        st.session_state.cleared = True
-        st.components.v1.html("<script>try { window.speechSynthesis.cancel(); if(window.parent && window.parent.speechSynthesis) window.parent.speechSynthesis.cancel(); } catch(e){}</script>", height=0)
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
+if st.button("🗑️ Clear Chat", key="main_corner_clear_btn", help="Clear conversation history"):
+    st.session_state.messages = []
+    st.session_state.speech_to_speak = ""
+    st.session_state.widget_counter += 1
+    st.session_state.cleared = True
+    st.components.v1.html("<script>try { window.speechSynthesis.cancel(); if(window.parent && window.parent.speechSynthesis) window.parent.speechSynthesis.cancel(); } catch(e){}</script>", height=0)
+    st.rerun()
 
 
 # ─────────────────────────────────────────────────────────
