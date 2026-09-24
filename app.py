@@ -459,6 +459,22 @@ st.markdown("""
         transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease, box-shadow 0.25s ease !important;
     }
 
+    /* Immediately suppress and purge any stale streaming containers from previous turns */
+    [data-stale="true"],
+    div[data-stale="true"],
+    .element-container[data-stale="true"],
+    div[data-testid="stElementContainer"][data-stale="true"],
+    div[data-testid="stChatMessage"][data-stale="true"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
     /* User Message Bubble: Sleek Deep Sapphire Glass */
     div[data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-user"]) {
         background: linear-gradient(135deg, rgba(22, 33, 58, 0.82) 0%, rgba(15, 23, 42, 0.90) 100%) !important;
@@ -498,6 +514,123 @@ st.markdown("""
         font-size: 0.78rem;
         font-weight: 600;
         display: inline-block;
+    }
+
+    /* ─── ENTERPRISE BRANDING & METRIC PILLS ─── */
+    .enterprise-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #38bdf8;
+        background: rgba(56, 189, 248, 0.12);
+        border: 1px solid rgba(56, 189, 248, 0.35);
+        padding: 2px 9px;
+        border-radius: 9999px;
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+    }
+
+    /* ─── ENTERPRISE WELCOME HERO ─── */
+    .enterprise-welcome-hero {
+        position: relative;
+        text-align: center;
+        padding: 44px 28px 36px 28px;
+        background: linear-gradient(145deg, rgba(15, 23, 42, 0.78) 0%, rgba(10, 15, 30, 0.88) 100%);
+        backdrop-filter: blur(28px) saturate(190%);
+        -webkit-backdrop-filter: blur(28px) saturate(190%);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 24px;
+        margin: 18px 0 28px 0;
+        box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.65), inset 0 1px 1.5px rgba(255, 255, 255, 0.18);
+        overflow: hidden;
+    }
+    .ent-hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #38bdf8;
+        background: rgba(56, 189, 248, 0.12);
+        border: 1px solid rgba(56, 189, 248, 0.32);
+        padding: 5px 14px;
+        border-radius: 9999px;
+        margin-bottom: 16px;
+        box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+    }
+    .ent-pulse-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #38bdf8;
+        box-shadow: 0 0 8px #38bdf8;
+        animation: pulseDot 2s infinite;
+    }
+    @keyframes pulseDot {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .ent-hero-title {
+        font-size: 1.85rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin: 0 0 10px 0;
+        background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .ent-hero-desc {
+        color: #94a3b8;
+        font-size: 0.94rem;
+        max-width: 580px;
+        margin: 0 auto 28px auto;
+        line-height: 1.6;
+    }
+    .ent-suggestions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 14px;
+        text-align: left;
+    }
+    .ent-card {
+        background: rgba(255, 255, 255, 0.035);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 16px 18px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: default;
+    }
+    .ent-card:hover {
+        background: rgba(255, 255, 255, 0.07);
+        border-color: rgba(56, 189, 248, 0.4);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.5), 0 0 16px rgba(56, 189, 248, 0.15);
+    }
+    .ent-card-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+    }
+    .ent-card-icon {
+        font-size: 1.15rem;
+    }
+    .ent-card-title {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #f1f5f9;
+        letter-spacing: -0.01em;
+    }
+    .ent-card-text {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        line-height: 1.45;
+        font-style: italic;
     }
 
     /* ─── SIDEBAR MODERN GLASSMORPHISM ─── */
@@ -1309,12 +1442,15 @@ st.markdown("""
 <div class="instagram-top-bar">
     <div class="instagram-header-center">
         <div class="insta-avatar-ring">
-            <span style="font-size: 1.35rem;">🎙️</span>
+            <span style="font-size: 1.25rem;">⚡</span>
             <span class="insta-active-dot"></span>
         </div>
         <div class="insta-title-wrap">
-            <div class="insta-main-title">VoiceBot AI</div>
-            <div class="insta-sub-title">Speech Recognition & Deep Learning Conversational Agent</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="insta-main-title">VoiceBot Enterprise</span>
+                <span class="enterprise-pill">99.99% SLA • Ultra LPU</span>
+            </div>
+            <div class="insta-sub-title">Neural Conversational Intelligence • Hybrid Cloud LPU & BiLSTM Core</div>
         </div>
     </div>
 </div>
@@ -1370,6 +1506,56 @@ def clean_for_speech(text: str) -> str:
     return text
 
 
+def sanitize_user_query(query: str, history: list, extra_replies: list = None) -> str:
+    """
+    Enterprise prompt sanitizer: Strips out any echoed assistant speech
+    that may have leaked into the microphone from computer speakers.
+    Guarantees clean, isolated user questions across turns.
+    """
+    if not query:
+        return ""
+    clean_query = query.strip()
+
+    # Extract recent assistant responses (last 6 turns)
+    recent_assistant_msgs = [
+        m.get("content", "") for m in history[-8:] if m.get("role") == "assistant"
+    ]
+    if extra_replies:
+        recent_assistant_msgs.extend([r for r in extra_replies[-6:] if r])
+
+    for prev_content in recent_assistant_msgs:
+        if not prev_content:
+            continue
+        # 1. Full sentence removal
+        sentences = [s.strip() for s in re.split(r'[.!?\n]+', prev_content) if len(s.strip()) > 8]
+        for sent in sentences:
+            try:
+                pattern = re.compile(re.escape(sent), re.IGNORECASE)
+                clean_query = pattern.sub('', clean_query).strip()
+            except Exception:
+                pass
+
+        # 2. Fragment / consecutive n-gram removal (chunks from 12 words down to 3 words)
+        words = prev_content.split()
+        for chunk_len in range(min(12, len(words)), 2, -1):
+            for i in range(len(words) - chunk_len + 1):
+                chunk = ' '.join(words[i:i+chunk_len])
+                chunk_clean = re.sub(r'[^a-zA-Z0-9\s]', '', chunk)
+                if len(chunk_clean) > 8:
+                    try:
+                        pattern = re.compile(re.escape(chunk), re.IGNORECASE)
+                        clean_query = pattern.sub('', clean_query).strip()
+                    except Exception:
+                        pass
+
+    # Clean up leading/trailing punctuation, broken stray word fragments, and whitespace
+    clean_query = re.sub(r'^[,\s.:;\-—]+|[,\s.:;\-—]+$', '', clean_query).strip()
+    clean_query = re.sub(r'\s+[a-zA-Z]{1,3}$', '', clean_query).strip()
+    clean_query = re.sub(r'^[,\s.:;\-—]+|[,\s.:;\-—]+$', '', clean_query).strip()
+    clean_query = re.sub(r'\s+', ' ', clean_query).strip()
+    return clean_query if clean_query else query.strip()
+
+
 def trigger_browser_tts(text_to_speak: str, voice_pref: str = "Google US English (Warm & Natural)"):
     """
     Speaks the response aloud via high-fidelity Neural Web Speech API.
@@ -1415,6 +1601,14 @@ def trigger_browser_tts(text_to_speak: str, voice_pref: str = "Google US English
 
             synth.cancel();
             notifyVoiceWidget(true);
+
+            // Listen for immediate cancellation from mic or user controls
+            window.addEventListener("message", function(e) {{
+                if (e.data && (e.data.type === "STOP_TTS" || e.data.type === "BOT_SPEAKING")) {{
+                    synth.cancel();
+                    notifyVoiceWidget(false);
+                }}
+            }});
 
             var fullText = "{clean_text}";
             var pref = "{safe_pref}";
@@ -1565,15 +1759,18 @@ if st.session_state.get("cleared", False):
 # Process submitted query (from either voice recognition or typed text)
 if spoken_data:
     if isinstance(spoken_data, dict):
-        user_query = str(spoken_data.get("text", "")).strip()
-        query_id = str(spoken_data.get("ts", user_query))
+        raw_query = str(spoken_data.get("text", "")).strip()
+        query_id = str(spoken_data.get("ts", raw_query))
     else:
-        user_query = str(spoken_data).strip()
-        query_id = user_query
+        raw_query = str(spoken_data).strip()
+        query_id = raw_query
 
     is_duplicate = (query_id == st.session_state.get("last_processed_id"))
 
-    if user_query and not is_duplicate:
+    if raw_query and not is_duplicate:
+        # Enterprise Sanitizer: Completely strips any echoed speaker audio from previous turns
+        extra_replies = st.session_state.get("recent_assistant_replies", [])
+        user_query = sanitize_user_query(raw_query, st.session_state.messages, extra_replies=extra_replies)
         st.session_state.last_processed_id = query_id
 
         with chat_container:
@@ -1601,6 +1798,19 @@ if spoken_data:
                     agent_data = get_agent_response(user_query, force_local=force_bilstm)
 
                 reply_text = agent_data["reply"]
+
+                # Immediately commit to session state so state is NEVER lost on interruptions
+                st.session_state.messages.append({"role": "user", "content": user_query})
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": reply_text,
+                    "engine": agent_data.get("engine", "BiLSTM"),
+                    "intent": agent_data.get("intent", ""),
+                    "confidence": agent_data.get("confidence", 1.0),
+                })
+                if "recent_assistant_replies" not in st.session_state:
+                    st.session_state.recent_assistant_replies = []
+                st.session_state.recent_assistant_replies.append(reply_text)
 
                 # Trigger browser TTS immediately so words stream in sync with spoken voice
                 if st.session_state.auto_tts:
@@ -1641,24 +1851,49 @@ if spoken_data:
             # Auto-scroll down to ensure complete reply is in full view above the dock
             st.components.v1.html("<script>try{window.parent.scrollTo({top: window.parent.document.body.scrollHeight, behavior: 'smooth'});}catch(e){}</script>", height=0)
 
-        # Save to session state
-        st.session_state.messages.append({"role": "user", "content": user_query})
-        st.session_state.messages.append({
-            "role": "assistant",
-            "content": reply_text,
-            "engine": agent_data.get("engine", "BiLSTM"),
-            "intent": agent_data.get("intent", ""),
-            "confidence": agent_data.get("confidence", 1.0),
-        })
-
 else:
     with chat_container:
         if len(st.session_state.messages) == 0:
             st.markdown("""
-            <div style="text-align: center; padding: 45px 20px; background: rgba(15, 23, 42, 0.45); border-radius: 16px; border: 1px dashed rgba(148, 163, 184, 0.2); margin: 25px 0;">
-                <div style="font-size: 2.8rem; margin-bottom: 10px;">🎙️</div>
-                <h3 style="margin: 0 0 6px 0; color: #f1f5f9; font-weight: 700;">Ready to Chat</h3>
-                <p style="margin: 0; color: #94a3b8; font-size: 0.9rem;">Tap the microphone below to speak naturally, or type your question in the text box.</p>
+            <div class="enterprise-welcome-hero">
+                <div class="ent-hero-badge">
+                    <span class="ent-pulse-dot"></span>
+                    <span>ENTERPRISE NEURAL SYSTEM ACTIVE</span>
+                </div>
+                <h2 class="ent-hero-title">VoiceBot Enterprise Intelligence</h2>
+                <p class="ent-hero-desc">
+                    Ultra-low latency conversational agent powered by hybrid Cloud LPUs and offline BiLSTM neural fallback architecture.
+                </p>
+                <div class="ent-suggestions-grid">
+                    <div class="ent-card">
+                        <div class="ent-card-header">
+                            <span class="ent-card-icon">⚡</span>
+                            <span class="ent-card-title">High-Speed LPU</span>
+                        </div>
+                        <div class="ent-card-text">"Explain transformer multi-head self-attention mechanisms"</div>
+                    </div>
+                    <div class="ent-card">
+                        <div class="ent-card-header">
+                            <span class="ent-card-icon">🏛️</span>
+                            <span class="ent-card-title">Academic & Factual</span>
+                        </div>
+                        <div class="ent-card-text">"Where is Vellore Institute of Technology headquartered?"</div>
+                    </div>
+                    <div class="ent-card">
+                        <div class="ent-card-header">
+                            <span class="ent-card-icon">🧠</span>
+                            <span class="ent-card-title">Neural Core</span>
+                        </div>
+                        <div class="ent-card-text">"How does the custom BiLSTM deep learning model work?"</div>
+                    </div>
+                    <div class="ent-card">
+                        <div class="ent-card-header">
+                            <span class="ent-card-icon">🎙️</span>
+                            <span class="ent-card-title">Voice Command</span>
+                        </div>
+                        <div class="ent-card-text">"Tap the microphone dock below to speak naturally"</div>
+                    </div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
         else:

@@ -243,10 +243,13 @@
   let recognition = null;
   let isListening = false;
   let isBotSpeaking = false;
+  let botSpeechCooldown = false;
   let silenceTimer = null;
+  let cooldownTimer = null;
   let finalAccumulatedText = "";
   let isHandshakeComplete = false;
   const SILENCE_TIMEOUT_MS = 1400;
+  const BOT_SPEECH_COOLDOWN_MS = 2500;
   const COMPONENT_HEIGHT = 64;
 
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -289,6 +292,8 @@
 
     if (event.data.type === "BOT_SPEAKING") {
       isBotSpeaking = true;
+      botSpeechCooldown = true;
+      clearTimeout(cooldownTimer);
       // Abort active listening immediately to prevent computer speakers from feeding into mic!
       if (recognition) {
         try { recognition.abort(); } catch (e) {}
@@ -296,9 +301,17 @@
       isListening = false;
       clearTimeout(silenceTimer);
       finalAccumulatedText = "";
+      const input = document.getElementById("chatInput");
+      if (input) input.value = "";
       resetUi();
     } else if (event.data.type === "BOT_DONE_SPEAKING") {
       isBotSpeaking = false;
+      // Keep cooldown active for a few seconds after bot stops speaking
+      // to prevent trailing speaker audio from being captured by mic
+      clearTimeout(cooldownTimer);
+      cooldownTimer = setTimeout(() => {
+        botSpeechCooldown = false;
+      }, BOT_SPEECH_COOLDOWN_MS);
     } else if (event.data.type === "streamlit:render") {
       isHandshakeComplete = true;
       clearInterval(handshakeInterval);
@@ -309,9 +322,12 @@
     }
   });
 
-  // Stop bot's speech immediately
+  // Stop bot's speech immediately across all iframes and windows
   function stopBotSpeech() {
     isBotSpeaking = false;
+    botSpeechCooldown = false;
+    clearTimeout(cooldownTimer);
+
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
@@ -319,6 +335,17 @@
       if (window.parent && 'speechSynthesis' in window.parent) {
         window.parent.speechSynthesis.cancel();
       }
+    } catch (e) {}
+
+    // Broadcast cancel message to all sibling frames and parent
+    try {
+      var doc = (window.parent && window.parent.document) ? window.parent.document : document;
+      var iframes = doc.querySelectorAll('iframe');
+      iframes.forEach(function(f) {
+        try { f.contentWindow.speechSynthesis.cancel(); } catch(err) {}
+        try { f.contentWindow.postMessage({ type: "STOP_TTS" }, "*"); } catch(err) {}
+      });
+      window.parent.postMessage({ type: "STOP_TTS" }, "*");
     } catch (e) {}
 
     // Visual feedback on stop button
@@ -399,9 +426,12 @@
     };
 
     recognition.onresult = (event) => {
-      // If the bot is speaking aloud, drop results to avoid echo/feedback loop
-      if (isBotSpeaking) {
+      // If the bot is speaking aloud or in post-speech cooldown, drop results
+      // to prevent computer speakers from feeding audio into the microphone
+      if (isBotSpeaking || botSpeechCooldown) {
         finalAccumulatedText = "";
+        const input = document.getElementById("chatInput");
+        if (input) input.value = "";
         return;
       }
 
@@ -476,6 +506,9 @@
     if (isListening) {
       finishAndSubmit();
     } else {
+      // Clear cooldown when user explicitly clicks mic
+      botSpeechCooldown = false;
+      clearTimeout(cooldownTimer);
       finalAccumulatedText = "";
       const input = document.getElementById("chatInput");
       if (input) input.value = "";
