@@ -320,6 +320,12 @@
         window.parent.speechSynthesis.cancel();
       }
     } catch (e) {}
+    try {
+      if (window.parent && window.parent.currentBotAudio) {
+        window.parent.currentBotAudio.pause();
+        window.parent.currentBotAudio.currentTime = 0;
+      }
+    } catch (e) {}
 
     // Visual feedback on stop button
     const stopBtn = document.querySelector('.stop-btn');

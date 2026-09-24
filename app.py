@@ -15,6 +15,7 @@ import time
 import json
 import pickle
 import random
+import base64
 import requests
 import numpy as np
 import streamlit as st
@@ -498,6 +499,17 @@ st.markdown("""
         font-size: 0.78rem;
         font-weight: 600;
         display: inline-block;
+    }
+    .badge-fish {
+        background: rgba(6, 182, 212, 0.15);
+        color: #22d3ee;
+        border: 1px solid rgba(6, 182, 212, 0.4);
+        padding: 3px 10px;
+        border-radius: 16px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        display: inline-block;
+        margin-left: 6px;
     }
 
     /* ─── SIDEBAR MODERN GLASSMORPHISM ─── */
@@ -1240,6 +1252,31 @@ with st.sidebar:
         help="When enabled, the browser will automatically speak the chatbot's answers aloud."
     )
 
+    fish_api_k = get_secret("FISH_AUDIO_API_KEY")
+    if fish_api_k:
+        use_fish_audio = st.toggle(
+            "🐟 Fish Audio Neural Voice",
+            value=True,
+            help="High-fidelity ultra-natural neural speech synthesis powered by Fish Audio (s2.1-pro-free)."
+        )
+    else:
+        use_fish_audio = False
+
+    if fish_api_k and use_fish_audio:
+        st.markdown("""
+        <div style="background: rgba(15, 23, 42, 0.72); border: 1px solid rgba(6, 182, 212, 0.28); border-radius: 14px; padding: 14px 16px; margin-top: 14px; margin-bottom: 16px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35); backdrop-filter: blur(14px);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-size: 0.72rem; font-weight: 700; color: #22d3ee; letter-spacing: 0.06em; text-transform: uppercase;">VOICE SYNTHESIS</span>
+                <span style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; color: #22d3ee; background: rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.3); padding: 2px 8px; border-radius: 20px;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: #22d3ee; box-shadow: 0 0 6px #22d3ee;"></span>
+                    Neural HD
+                </span>
+            </div>
+            <div style="font-size: 0.95rem; font-weight: 700; color: #f1f5f9; margin-bottom: 4px;">Fish Audio (s2.1-pro)</div>
+            <div style="font-size: 0.78rem; color: #94a3b8;">Ultra-natural human voice output</div>
+        </div>
+        """, unsafe_allow_html=True)
+
     st.markdown("<div style='margin: 12px 0;'></div>", unsafe_allow_html=True)
 
     with st.expander("📊 Lab Model Specifications"):
@@ -1281,7 +1318,16 @@ if st.button("🗑️ Clear Chat", key="main_corner_clear_btn", help="Clear conv
     st.session_state.speech_to_speak = ""
     st.session_state.widget_counter += 1
     st.session_state.cleared = True
-    st.components.v1.html("<script>try { window.speechSynthesis.cancel(); if(window.parent && window.parent.speechSynthesis) window.parent.speechSynthesis.cancel(); } catch(e){}</script>", height=0)
+    st.components.v1.html("""<script>
+        try {
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            if (window.parent && window.parent.speechSynthesis) window.parent.speechSynthesis.cancel();
+            if (window.parent && window.parent.currentBotAudio) {
+                window.parent.currentBotAudio.pause();
+                window.parent.currentBotAudio.currentTime = 0;
+            }
+        } catch(e){}
+    </script>""", height=0)
     st.rerun()
 
 
@@ -1381,6 +1427,101 @@ def trigger_browser_tts(text_to_speak: str):
     st.components.v1.html(tts_js, height=0)
 
 
+def generate_fish_audio(text: str):
+    """
+    Generate natural neural human speech using Fish Audio API (s2.1-pro-free model).
+    Returns base64-encoded MP3 data string or None on failure/timeout.
+    """
+    api_key = get_secret("FISH_AUDIO_API_KEY")
+    if not api_key:
+        return None
+    try:
+        url = "https://api.fish.audio/v1/tts"
+        headers = {
+            "Authorization": f"Bearer {api_key.strip()}",
+            "Content-Type": "application/json",
+            "model": "s2.1-pro-free"
+        }
+        payload = {
+            "text": text,
+            "format": "mp3"
+        }
+        resp = requests.post(url, headers=headers, json=payload, timeout=12)
+        if resp.status_code == 200 and resp.content and len(resp.content) > 1000:
+            return base64.b64encode(resp.content).decode("utf-8")
+        else:
+            print(f"[Fish Audio] Status {resp.status_code}: {resp.text[:120]}")
+    except Exception as e:
+        print(f"[Fish Audio] Request error: {e}")
+    return None
+
+
+def trigger_voice_speech(text_to_speak: str, use_fish: bool = True) -> str:
+    """
+    Speaks the response aloud using Fish Audio Neural Voice when enabled,
+    automatically falling back to the Web Speech API if offline or unavailable.
+    Returns the engine used: 'fish' or 'browser'.
+    """
+    fish_b64 = None
+    if use_fish:
+        fish_b64 = generate_fish_audio(text_to_speak)
+
+    if fish_b64:
+        fish_player_js = f"""
+        <script>
+            (function() {{
+                try {{
+                    var parentWin = window.parent || window;
+                    if (parentWin.currentBotAudio) {{
+                        try {{ parentWin.currentBotAudio.pause(); parentWin.currentBotAudio.currentTime = 0; }} catch(e) {{}}
+                    }}
+                    if (parentWin.speechSynthesis) {{
+                        try {{ parentWin.speechSynthesis.cancel(); }} catch(e) {{}}
+                    }}
+
+                    function notifyVoiceWidget(isSpeaking) {{
+                        try {{
+                            var doc = parentWin.document || document;
+                            var iframes = doc.querySelectorAll('iframe');
+                            iframes.forEach(function(f) {{
+                                try {{
+                                    f.contentWindow.postMessage({{
+                                        type: isSpeaking ? "BOT_SPEAKING" : "BOT_DONE_SPEAKING"
+                                    }}, "*");
+                                }} catch(err) {{}}
+                            }});
+                        }} catch(e) {{}}
+                    }}
+
+                    var audio = new Audio("data:audio/mp3;base64,{fish_b64}");
+                    parentWin.currentBotAudio = audio;
+
+                    audio.onplay = function() {{ notifyVoiceWidget(true); }};
+                    audio.onended = function() {{ notifyVoiceWidget(false); }};
+                    audio.onpause = function() {{ notifyVoiceWidget(false); }};
+                    audio.onerror = function() {{ notifyVoiceWidget(false); }};
+
+                    notifyVoiceWidget(true);
+                    var playPromise = audio.play();
+                    if (playPromise !== undefined) {{
+                        playPromise.catch(function(err) {{
+                            console.warn("Autoplay block or error:", err);
+                            notifyVoiceWidget(false);
+                        }});
+                    }}
+                }} catch(err) {{
+                    console.error("Fish Audio playback error:", err);
+                }}
+            }})();
+        </script>
+        """
+        st.components.v1.html(fish_player_js, height=0)
+        return "fish"
+    else:
+        trigger_browser_tts(text_to_speak)
+        return "browser"
+
+
 # ─────────────────────────────────────────────────────────
 # CONVERSATION CHAT CONTAINER & HISTORY
 # ─────────────────────────────────────────────────────────
@@ -1418,10 +1559,15 @@ if spoken_data:
                     st.markdown(msg["content"])
                     if msg["role"] == "assistant":
                         engine_name = msg.get("engine", "")
+                        badges = []
                         if "Rollback" in engine_name:
-                            st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
+                            badges.append("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>")
                         elif "BiLSTM" in engine_name and force_bilstm:
-                            st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
+                            badges.append("<span class='badge-bilstm'>🧠 BiLSTM</span>")
+                        if msg.get("voice") == "fish":
+                            badges.append("<span class='badge-fish'>🐟 Fish Audio Neural HD</span>")
+                        if badges:
+                            st.markdown(" ".join(badges), unsafe_allow_html=True)
 
             # Render current user question
             with st.chat_message("user"):
@@ -1437,15 +1583,15 @@ if spoken_data:
 
                 reply_text = agent_data["reply"]
 
-                # Trigger browser TTS immediately so words stream in sync with spoken voice
+                # Trigger voice speech (Fish Audio Neural Voice or Browser Web Speech fallback)
+                used_voice_engine = "browser"
                 if st.session_state.auto_tts:
-                    trigger_browser_tts(reply_text)
+                    used_voice_engine = trigger_voice_speech(reply_text, use_fish=use_fish_audio)
 
-                # Live caption streaming generator: parallelized to voice speech timing (~142 WPM)
+                # Live caption streaming generator: parallelized to voice speech timing
                 def stream_live_captions():
                     if st.session_state.auto_tts:
-                        # Synchronize with Web Speech API audio initialization buffer
-                        time.sleep(0.65)
+                        time.sleep(0.4)
 
                     tokens = re.split(r'(\s+)', reply_text)
                     for token in tokens:
@@ -1453,13 +1599,12 @@ if spoken_data:
                             yield token
                             if not token.isspace():
                                 if st.session_state.auto_tts:
-                                    # Paced in parallel to spoken vocal delivery
                                     word_clean = token.strip()
-                                    delay = 0.28 + (len(word_clean) * 0.022)
+                                    delay = 0.24 + (len(word_clean) * 0.02)
                                     if word_clean.endswith((',', ';', ':', '—', '-')):
-                                        delay += 0.28
+                                        delay += 0.22
                                     elif word_clean.endswith(('.', '!', '?')):
-                                        delay += 0.46
+                                        delay += 0.38
                                     time.sleep(delay)
                                 else:
                                     time.sleep(0.02)
@@ -1467,10 +1612,15 @@ if spoken_data:
                 st.write_stream(stream_live_captions)
 
                 engine_name = agent_data.get("engine", "")
+                live_badges = []
                 if "Rollback" in engine_name:
-                    st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
+                    live_badges.append("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>")
                 elif "BiLSTM" in engine_name and force_bilstm:
-                    st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
+                    live_badges.append("<span class='badge-bilstm'>🧠 BiLSTM</span>")
+                if used_voice_engine == "fish":
+                    live_badges.append("<span class='badge-fish'>🐟 Fish Audio Neural HD</span>")
+                if live_badges:
+                    st.markdown(" ".join(live_badges), unsafe_allow_html=True)
 
             # Auto-scroll down to ensure complete reply is in full view above the dock
             st.components.v1.html("<script>try{window.parent.scrollTo({top: window.parent.document.body.scrollHeight, behavior: 'smooth'});}catch(e){}</script>", height=0)
@@ -1483,6 +1633,7 @@ if spoken_data:
             "engine": agent_data.get("engine", "BiLSTM"),
             "intent": agent_data.get("intent", ""),
             "confidence": agent_data.get("confidence", 1.0),
+            "voice": used_voice_engine,
         })
         st.session_state.widget_counter += 1
 
@@ -1502,7 +1653,12 @@ else:
                     st.markdown(msg["content"])
                     if msg["role"] == "assistant":
                         engine_name = msg.get("engine", "")
+                        badges = []
                         if "Rollback" in engine_name:
-                            st.markdown("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>", unsafe_allow_html=True)
+                            badges.append("<span class='badge-fallback'>🛡️ Local Rollback (BiLSTM)</span>")
                         elif "BiLSTM" in engine_name and force_bilstm:
-                            st.markdown("<span class='badge-bilstm'>🧠 BiLSTM</span>", unsafe_allow_html=True)
+                            badges.append("<span class='badge-bilstm'>🧠 BiLSTM</span>")
+                        if msg.get("voice") == "fish":
+                            badges.append("<span class='badge-fish'>🐟 Fish Audio Neural HD</span>")
+                        if badges:
+                            st.markdown(" ".join(badges), unsafe_allow_html=True)
